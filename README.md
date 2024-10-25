@@ -5,4 +5,3 @@ Central Hub for the web backend of the DefenseDrillApp
 - [ ] Have repo installed
 - [ ] Have make installed
 - [ ] Have JRE 17
-- [ ] 
