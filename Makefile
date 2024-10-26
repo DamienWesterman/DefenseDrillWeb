@@ -70,9 +70,10 @@ docker-upload:
 #TODO: finish me, check for credentials?
 
 help:
-	@echo "****************************************************************"
-	@echo "Make System for DefenseDrillWeb"
-	@echo "****************************************************************"
+	@echo
+	@echo "****************************************************************************************************"
+	@echo "                                   Make System for DefenseDrillWeb"
+	@echo "****************************************************************************************************"
 	@echo
 	@echo "Targets:"
 	@echo "   make help          : Show this help menu."
