@@ -24,7 +24,10 @@
 # limitations under the License.
 #
 
-DOCKER_SPRING_DEPENDENCIES += database
+
+DOCKER_SPRING_DEPENDENCIES += api-database
+DOCKER_DEV_DEFINITIONS += API_POSTGRES_USER=root
+DOCKER_DEV_DEFINITIONS += API_POSTGRES_PASSWORD=root
 
 .PHONY: init help run-dev-local run-dev-docker run-prod test-dev-local test-dev-docker test-prod clean docker-build docker-upload
 .DEFAULT: help
@@ -50,7 +53,12 @@ init:
 
 run-dev-local:
 	@echo MAKING $@
-	docker-compose up -d ${DOCKER_SPRING_DEPENDENCIES}
+	${DOCKER_DEV_DEFINITIONS} docker-compose up -d ${DOCKER_SPRING_DEPENDENCIES}
+#TODO: finish me
+
+stop-dev-local:
+	@echo MAKING $@
+	${DOCKER_DEV_DEFINITIONS} docker-compose down -v ${DOCKER_SPRING_DEPENDENCIES}
 #TODO: finish me
 
 run-dev-docker:
