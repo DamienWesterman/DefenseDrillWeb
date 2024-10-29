@@ -20,5 +20,13 @@ services:
       start_period: 30s
       timeout: 10s
 
+  zipkin:
+    image: openzipkin/zipkin
+    container_name: zipkin
+    ports:
+      - "9411:9411"
+
+  # REST_API_DB_URL=jdbc:postgresql://api-database:5432/defense_drill
+
 volumes:
   api-database-volume:

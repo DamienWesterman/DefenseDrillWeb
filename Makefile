@@ -29,6 +29,8 @@ DOCKER_SPRING_DEPENDENCIES += api-database
 DOCKER_DEV_DEFINITIONS += API_POSTGRES_USER=root
 DOCKER_DEV_DEFINITIONS += API_POSTGRES_PASSWORD=root
 
+DOCKER_SPRING_DEPENDENCIES += zipkin
+
 .PHONY: init help run-dev-local run-dev-docker run-prod test-dev-local test-dev-docker test-prod clean docker-build docker-upload
 .DEFAULT: help
 .DELETE_ON_ERROR: help
@@ -58,7 +60,7 @@ run-dev-local:
 
 stop-dev-local:
 	@echo MAKING $@
-	${DOCKER_DEV_DEFINITIONS} docker-compose down -v ${DOCKER_SPRING_DEPENDENCIES}
+	${DOCKER_DEV_DEFINITIONS} docker-compose down ${DOCKER_SPRING_DEPENDENCIES}
 #TODO: finish me
 
 run-dev-docker:
@@ -114,6 +116,7 @@ help:
 	@echo "                       : launches the docker-compose.yaml."
 	@echo "   make run-prod       : Run the application in a docker production environment. Configures and"
 	@echo "                       : launches the docker-compose.yaml."
+# TODO: add stop-dev-local, and any others too
 # TODO: figure out how I want to do the test stuff? Unit vs integration? All in docker? Just launch docker base images then run the spring one by one and keep up config server/etc?
 	@echo "   make clean          : Clean each microservice."
 	@echo "   make docker-build   : Build and save docker images for each microservice."
