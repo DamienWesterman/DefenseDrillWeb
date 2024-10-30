@@ -31,6 +31,15 @@ DOCKER_DEV_DEFINITIONS += API_POSTGRES_PASSWORD=root
 
 DOCKER_SPRING_DEPENDENCIES += zipkin
 
+DOCKER_SPRING_DEPENDENCIES += security-database
+DOCKER_DEV_DEFINITIONS += SECURITY_POSTGRES_USER=root
+DOCKER_DEV_DEFINITIONS += SECURITY_POSTGRES_PASSWORD=root
+
+DOCKER_SPRING_DEPENDENCIES += vault
+DOCKER_DEV_DEFINITIONS += VAULT_TOKEN=myroot
+
+# TODO: FIXME: Add video server to dependencies - also find a video server
+
 .PHONY: init help run-dev-local run-dev-docker run-prod test-dev-local test-dev-docker test-prod clean docker-build docker-upload
 .DEFAULT: help
 .DELETE_ON_ERROR: help
@@ -49,6 +58,7 @@ launch:
 init:
 	repo init -u https://github.com/DamienWesterman/DefenseDrillManifests.git -m DefaultManifest.xml -b main
 	repo sync
+# TODO: Change the file names to variables. Also figure out a way to encrypt the file with a password so it is secure?
 	cp .defense_drill.env.template defense_drill.env
 	@echo
 	@echo All repos have been imported. Please fill out fields in defense_drill.env!
@@ -60,10 +70,11 @@ run-dev-local:
 
 stop-dev-local:
 	@echo MAKING $@
-	${DOCKER_DEV_DEFINITIONS} docker-compose down ${DOCKER_SPRING_DEPENDENCIES}
+	docker-compose stop
 #TODO: finish me
 
-run-dev-docker:
+run-dev-docker: docker-build
+# Run stop-dev-docker first
 	@echo MAKING $@
 # Specify SPRING_PROFILES_ACTIVE=dev-docker
 #TODO: finish me
