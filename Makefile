@@ -57,6 +57,7 @@ DOCKER_DEV_DEFINITIONS += GID=${GID}
 
 DOCKER_DEV_DEPENDENCIES += file-server
 
+# TODO: add all .PHONY
 .PHONY: init help run-dev-local run-dev-docker run-prod test-dev-local test-dev-docker test-prod clean docker-build docker-upload
 .DEFAULT: help
 .DELETE_ON_ERROR: help
