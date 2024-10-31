@@ -24,21 +24,38 @@
 # limitations under the License.
 #
 
+# TODO: Maybe have an interactive docker configs session? Or something, prompt the user
+# TODO: Have all the configuration files as templates then copy them over and .gitignore them
+# TODO: make a diagram somewhere of the make system and what interacts with what configurations and build rules and docker-compose files and profiles
 
-DOCKER_SPRING_DEPENDENCIES += api-database
+DOCKER_COMPOSE_CMD := docker compose
+DOCKER_CONFIG_DIR := ./docker-config
+DOCKER_ENVIRONMENT_FILE := defense_drill.env
+DOCKER_ENVIRONMENT_FILE_PATH := ${DOCKER_CONFIG_DIR}/${DOCKER_ENVIRONMENT_FILE}
+DOCKER_ENVIRONMENT_TEMPLATE_PATH := ${DOCKER_CONFIG_DIR}/.${DOCKER_ENVIRONMENT_FILE}.template
+
+DOCKER_DEV_DEPENDENCIES =
+
+DOCKER_DEV_DEPENDENCIES += api-database
 DOCKER_DEV_DEFINITIONS += API_POSTGRES_USER=root
 DOCKER_DEV_DEFINITIONS += API_POSTGRES_PASSWORD=root
 
-DOCKER_SPRING_DEPENDENCIES += zipkin
+DOCKER_DEV_DEPENDENCIES += zipkin
 
-DOCKER_SPRING_DEPENDENCIES += security-database
+DOCKER_DEV_DEPENDENCIES += security-database
 DOCKER_DEV_DEFINITIONS += SECURITY_POSTGRES_USER=root
 DOCKER_DEV_DEFINITIONS += SECURITY_POSTGRES_PASSWORD=root
 
-DOCKER_SPRING_DEPENDENCIES += vault
+DOCKER_DEV_DEPENDENCIES += vault
 DOCKER_DEV_DEFINITIONS += VAULT_TOKEN=myroot
 
-# TODO: FIXME: Add video server to dependencies - also find a video server
+DOCKER_DEV_DEPENDENCIES += video-server
+UID := $(shell id -u)
+GID := $(shell id -g)
+DOCKER_DEV_DEFINITIONS += UID=${UID}
+DOCKER_DEV_DEFINITIONS += GID=${GID}
+
+DOCKER_DEV_DEPENDENCIES += file-server
 
 .PHONY: init help run-dev-local run-dev-docker run-prod test-dev-local test-dev-docker test-prod clean docker-build docker-upload
 .DEFAULT: help
@@ -46,10 +63,10 @@ DOCKER_DEV_DEFINITIONS += VAULT_TOKEN=myroot
 
 # Launch always uses a production/docker environment
 launch:
-# Make sure the docker-compose environment configuration exists before launching
-	@test -f defense_drill.env || { \
-			cp .defense_drill.env.template defense_drill.env; \
-			echo "Please fill out fields in defense_drill.env before continuing!"; \
+# Make sure the docker compose environment configuration exists before launching
+	@test -f ${DOCKER_ENVIRONMENT_FILE_PATH} || { \
+			cp ${DOCKER_ENVIRONMENT_TEMPLATE_PATH} ${DOCKER_ENVIRONMENT_FILE_PATH}; \
+			echo "Please fill out fields in ${DOCKER_ENVIRONMENT_FILE_PATH} before continuing!"; \
 			exit 1; \
 		}
 	@echo MAKING $@
@@ -59,18 +76,23 @@ init:
 	repo init -u https://github.com/DamienWesterman/DefenseDrillManifests.git -m DefaultManifest.xml -b main
 	repo sync
 # TODO: Change the file names to variables. Also figure out a way to encrypt the file with a password so it is secure?
-	cp .defense_drill.env.template defense_drill.env
+	cp ${DOCKER_ENVIRONMENT_TEMPLATE_PATH} ${DOCKER_ENVIRONMENT_FILE_PATH}
 	@echo
-	@echo All repos have been imported. Please fill out fields in defense_drill.env!
+	@echo All repos have been imported. Please fill out fields in ${DOCKER_ENVIRONMENT_FILE_PATH}!
 
 run-dev-local:
 	@echo MAKING $@
-	${DOCKER_DEV_DEFINITIONS} docker-compose up -d ${DOCKER_SPRING_DEPENDENCIES}
+	${DOCKER_DEV_DEFINITIONS} ${DOCKER_COMPOSE_CMD} up -d ${DOCKER_DEV_DEPENDENCIES}
 #TODO: finish me
 
 stop-dev-local:
 	@echo MAKING $@
-	docker-compose stop
+	${DOCKER_DEV_DEFINITIONS} ${DOCKER_COMPOSE_CMD} stop
+#TODO: finish me
+
+remove-dev-local:
+	@echo MAKING $@
+	${DOCKER_DEV_DEFINITIONS} ${DOCKER_COMPOSE_CMD} down -v
 #TODO: finish me
 
 run-dev-docker: docker-build

@@ -1,6 +1,6 @@
-version: "3.8"
 # TODO: figure out exporting logs
 # TODO: figure out what needs to be changed for a dev profile and production. Might need different docker-compose files
+# TODO: add healthchecks, dependencies, and restart conditions
 services:
   api-database:
     image: postgres
@@ -11,7 +11,7 @@ services:
       - POSTGRES_PASSWORD=${API_POSTGRES_PASSWORD}
       - POSTGRES_DB=defense_drill
     env_file:
-      - defense_drill.env
+      - ./docker-configs/defense_drill.env
     volumes:
       - api-database-volume:/var/lib/postgresql/data
     healthcheck:
@@ -30,7 +30,7 @@ services:
       - POSTGRES_PASSWORD=${SECURITY_POSTGRES_PASSWORD}
       - POSTGRES_DB=security
     env_file:
-      - defense_drill.env
+      - ./docker-configs/defense_drill.env
     volumes:
       - security-database-volume:/var/lib/postgresql/data
     healthcheck:
@@ -51,7 +51,7 @@ services:
       - VAULT_DEV_LISTEN_ADDRESS=0.0.0.0:8200
       - VAULT_ADDR=http://0.0.0.0:8200
     env_file:
-      - defense_drill.env
+      - ./docker-configs/defense_drill.env
     # TODO: for prod, need to bring in a .hcl config file and copy to container
     volumes:
       - vault-volume:/vault/data # TODO: check this in prod
@@ -64,6 +64,38 @@ services:
     ports:
       - "9411:9411"
 
+  video-server:
+    image: jellyfin/jellyfin
+    user: "${UID}:${GID}"
+    ports:
+      - "8096:8096"
+    volumes:
+      - ./docker-configs/video_server_config.json:/jellyfin/jellyfin-web/config.json
+      - video-server-cache:/cache
+      - video-server-config:/config
+      - video-server-media:/media
+    restart: 'unless-stopped'
+    # Optional - alternative address used for autodiscovery
+    # TODO: set this up like https://gateway.com/jellyfin or whatever path I end up making
+    # environment:
+    #   - JELLYFIN_PublishedServerUrl=http://example.com
+    # Optional - may be necessary for docker healthcheck to pass if running in host network mode
+    # extra_hosts:
+    #   - 'host.docker.internal:host-gateway'
+
+# TODO: ADD THIS TO THE DIAGRAMS
+  file-server:
+    image: filebrowser/filebrowser
+    ports:
+      - "8097:80"  # Exposes FileBrowser on http://localhost:8081
+    volumes:
+      - video-server-media:/srv
+      # TODO: Configure
+      # - ./path/to/filebrowser.db:/database/filebrowser.db
+      # - ./path/to/settings.json:/config/settings.json  # Mount the settings file
+    restart: unless-stopped
+
+
   # REST_API_DB_URL=jdbc:postgresql://api-database:5432/defense_drill
   # SECURITY_API_DB_URL=jdbc:postgresql://security-database:5432/security
 
@@ -71,3 +103,6 @@ volumes:
   api-database-volume:
   security-database-volume:
   vault-volume:
+  video-server-media:
+  video-server-config:
+  video-server-cache:
