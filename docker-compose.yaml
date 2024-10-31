@@ -1,4 +1,5 @@
 # TODO: figure out exporting logs
+# TODO: create a docker-compose for production that uses images from my remote docker repo or something (configurable what repo)
 # TODO: figure out what needs to be changed for a dev profile and production. Might need different docker-compose files
 # TODO: add healthchecks, dependencies, and restart conditions
 services:
