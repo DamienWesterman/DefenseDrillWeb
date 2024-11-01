@@ -29,7 +29,7 @@
 # TODO: make a diagram somewhere of the make system and what interacts with what configurations and build rules and docker-compose files and profiles
 
 DOCKER_COMPOSE_CMD := docker compose
-DOCKER_CONFIG_DIR := ./docker-config
+DOCKER_CONFIG_DIR := ./docker-configs
 DOCKER_ENVIRONMENT_FILE := defense_drill.env
 DOCKER_ENVIRONMENT_FILE_PATH := ${DOCKER_CONFIG_DIR}/${DOCKER_ENVIRONMENT_FILE}
 DOCKER_ENVIRONMENT_TEMPLATE_PATH := ${DOCKER_CONFIG_DIR}/.${DOCKER_ENVIRONMENT_FILE}.template
