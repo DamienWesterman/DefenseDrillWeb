@@ -10,3 +10,6 @@
 # Imported sub-repos
 .repo/*
 spring_microservices/*
+
+# The filled out docker-compose environment file
+defense_drill.env
