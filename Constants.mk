@@ -27,9 +27,13 @@
 # Hard code this in the proper startup order
 MICROSERVICES := config-server server-registry rest-api security mvc gateway
 
-### SPRING VARIABLES ###
+#########################################################################################
+# SPRING VARIABLES #
+#########################################################################################
 
-### DOCKER VARIABLES ###
+#########################################################################################
+# DOCKER VARIABLES #
+#########################################################################################
 DOCKER_COMPOSE_CMD := docker compose
 DOCKER_CONFIG_DIR := ./docker-configs
 DOCKER_ENVIRONMENT_FILE := defense_drill.env

@@ -25,7 +25,6 @@
 #
 
 ### TODO LIST ###
-# TODO: Do what it takes for the testing ones to work
 # TODO: Get create-docker-images
 # TODO: Do what it takes to get run-dev-docker working
 # TODO: have doc comments for each make target
@@ -87,6 +86,10 @@ run-prod:
 	@echo MAKING $@
 #TODO: finish me
 
+#########################################################################################
+# TEST #
+#########################################################################################
+# Run the test suite for each microservice
 SPRING_MICROSERVICES_DIRECTORY := ${shell pwd}/spring_microservices
 CMD_KILL_RUNNING_SPRING_SERVERS := kill $$(pgrep -f "spring-boot:run")
 TEST_RESULTS_FILE := ${SPRING_MICROSERVICES_DIRECTORY}/test_results.txt
@@ -98,14 +101,14 @@ test: remove-dev-local run-dev-local
 	@date >> ${TEST_RESULTS_FILE}
 	-@${CMD_KILL_RUNNING_SPRING_SERVERS}
 #	We test and start each service in order. We assume ${MICROSERVICES} is in startup order
-	@for service in ${MICROSERVICES} ; do						\
-		cd ${SPRING_MICROSERVICES_DIRECTORY}/$$service/ ;		\
-		set -e;													\
-		./mvnw test ;											\
-		./mvnw spring-boot:run > /dev/null & 					\
-		echo WAITING FOR SERVICE TO START : $$service ; 		\
+	@for service in ${MICROSERVICES} ; do								\
+		cd ${SPRING_MICROSERVICES_DIRECTORY}/$$service/ ;				\
+		set -e;															\
+		./mvnw test ;													\
+		./mvnw spring-boot:run > /dev/null & 							\
+		echo WAITING FOR SERVICE TO START : $$service ; 				\
 		echo Tests succeeded for $$service >> ${TEST_RESULTS_FILE} ;	\
-		sleep 30 ; 												\
+		sleep 30 ; 														\
 	done
 	-@${CMD_KILL_RUNNING_SPRING_SERVERS}
 	$(MAKE) remove-dev-local
@@ -113,10 +116,22 @@ test: remove-dev-local run-dev-local
 	@date >> ${TEST_RESULTS_FILE}
 	@echo All Tests Succeeded !
 
-clean:
-	@echo MAKING $@
-#TODO: finish me
 
+#########################################################################################
+# CLEAN #
+#########################################################################################
+# Run clean for each microservice
+clean:
+	@for service in ${MICROSERVICES} ; do					\
+		cd ${SPRING_MICROSERVICES_DIRECTORY}/$$service/ ;	\
+		set -e;												\
+		./mvnw clean;										\
+	done
+
+#########################################################################################
+# DOCKER BUILD #
+#########################################################################################
+# Create a local docker image of each spring microservice
 docker-build:
 	@echo MAKING $@
 # Merits of build-image vs build-image-no-fork?

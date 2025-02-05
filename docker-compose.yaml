@@ -29,6 +29,13 @@
 # TODO: figure out what needs to be changed for a dev profile and production. Might need different docker-compose files
 # TODO: add healthchecks, dependencies, and restart conditions
 services:
+  #########################################################################################
+  # SPRING SERVICES #
+  #########################################################################################
+
+  #########################################################################################
+  # SUPPORT SERVICES #
+  #########################################################################################
   api-database:
     image: postgres
     ports:
