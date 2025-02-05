@@ -25,7 +25,7 @@
 #
 
 # Hard code this in the proper startup order
-MICROSERVICES := config-server server-registry rest-api security rest-api gateway
+MICROSERVICES := config-server server-registry rest-api security mvc gateway
 
 ### SPRING VARIABLES ###
 

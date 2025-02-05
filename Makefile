@@ -87,9 +87,31 @@ run-prod:
 	@echo MAKING $@
 #TODO: finish me
 
-test: run-dev-local
-# ./mvnw test
-#TODO: finish me
+SPRING_MICROSERVICES_DIRECTORY := ${shell pwd}/spring_microservices
+CMD_KILL_RUNNING_SPRING_SERVERS := kill $$(pgrep -f "spring-boot:run")
+TEST_RESULTS_FILE := ${SPRING_MICROSERVICES_DIRECTORY}/test_results.txt
+test: remove-dev-local run-dev-local
+	@echo "Testing DefenseDrillWeb"
+	-@rm ${TEST_RESULTS_FILE}
+	@touch ${TEST_RESULTS_FILE}
+	@echo "Starting tests at:" >> ${TEST_RESULTS_FILE}
+	@date >> ${TEST_RESULTS_FILE}
+	-@${CMD_KILL_RUNNING_SPRING_SERVERS}
+#	We test and start each service in order. We assume ${MICROSERVICES} is in startup order
+	@for service in ${MICROSERVICES} ; do						\
+		cd ${SPRING_MICROSERVICES_DIRECTORY}/$$service/ ;		\
+		set -e;													\
+		./mvnw test ;											\
+		./mvnw spring-boot:run > /dev/null & 					\
+		echo WAITING FOR SERVICE TO START : $$service ; 		\
+		echo Tests succeeded for $$service >> ${TEST_RESULTS_FILE} ;	\
+		sleep 30 ; 												\
+	done
+	-@${CMD_KILL_RUNNING_SPRING_SERVERS}
+	$(MAKE) remove-dev-local
+	@echo "Finished tests at:" >> ${TEST_RESULTS_FILE}
+	@date >> ${TEST_RESULTS_FILE}
+	@echo All Tests Succeeded !
 
 clean:
 	@echo MAKING $@
@@ -124,7 +146,8 @@ help:
 	@echo "                       : launches the docker-compose.yaml."
 	@echo "   make run-prod       : Run the application in a docker production environment. Configures and"
 	@echo "                       : launches the docker-compose.yaml."
-# TODO: add stop-dev-local, and any others too
+	@echo "   make test           : Runs test suites for each microservice. Results saved in"
+	@echo "                         ${TEST_RESULTS_FILE}"
 	@echo "   make clean          : Clean each microservice."
 	@echo "   make docker-build   : Build and save docker images for each microservice."
 	@echo "   make docker-upload  : Build and upload docker images of each microservice to a remote repo."
