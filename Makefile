@@ -50,7 +50,6 @@ launch:
 			echo "Please fill out fields in ${DOCKER_ENVIRONMENT_FILE_PATH} before continuing!"; \
 			exit 1; \
 		}
-	@echo MAKING $@
 #TODO: finish me
 
 init:
@@ -62,28 +61,24 @@ init:
 	@echo All repos have been imported. Please fill out fields in ${DOCKER_ENVIRONMENT_FILE_PATH}!
 
 run-dev-local:
-	@echo MAKING $@
 	${DOCKER_DEV_DEFINITIONS} ${DOCKER_COMPOSE_CMD} up -d ${DOCKER_DEV_DEPENDENCIES}
-#TODO: finish me
 
-stop-dev-local:
-	@echo MAKING $@
-	${DOCKER_DEV_DEFINITIONS} ${DOCKER_COMPOSE_CMD} stop
-#TODO: finish me
-
-remove-dev-local:
-	@echo MAKING $@
-	${DOCKER_DEV_DEFINITIONS} ${DOCKER_COMPOSE_CMD} down -v
-#TODO: finish me
-
-run-dev-docker: docker-build
-# Run stop-dev-docker first
-	@echo MAKING $@
+run-dev-docker:
+	${DOCKER_DEV_DEFINITIONS} ${DOCKER_COMPOSE_CMD} up -d ${DOCKER_DEV_DEPENDENCIES} ${MICROSERVICES}
 # Specify SPRING_PROFILES_ACTIVE=dev-docker
 #TODO: finish me
 
+stop-dev-local:
+	${DOCKER_DEV_DEFINITIONS} ${DOCKER_COMPOSE_CMD} stop
+
+stop-dev-docker: stop-dev-local
+
+remove-dev-local:
+	${DOCKER_DEV_DEFINITIONS} ${DOCKER_COMPOSE_CMD} down -v
+
+remove-dev-docker: stop-dev-docker remove-dev-local
+
 run-prod:
-	@echo MAKING $@
 #TODO: finish me
 
 #########################################################################################
@@ -129,18 +124,21 @@ clean:
 	done
 
 #########################################################################################
-# DOCKER BUILD #
+# BUILD IMAGES #
 #########################################################################################
 # Create a local docker image of each spring microservice
-docker-build:
-	@echo MAKING $@
-# Merits of build-image vs build-image-no-fork?
-#TODO: finish me
+build-images: test
+	@for service in ${MICROSERVICES} ; do											\
+		cd ${SPRING_MICROSERVICES_DIRECTORY}/$$service/ ;							\
+		set -e;																		\
+		./mvnw spring-boot:build-image -DskipTests -Dspring-boot.build-image.imageName=defensedrillweb/$$service:latest;	\
+	done
 
 docker-upload:
-	@echo MAKING $@
 #TODO: finish me, check for credentials?
+# TODO: Make the images as the regular ones and upload with version number AND latest
 
+# TODO: update the below
 help:
 	@echo
 	@echo "****************************************************************************************************"

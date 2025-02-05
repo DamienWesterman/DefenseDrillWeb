@@ -32,6 +32,25 @@ services:
   #########################################################################################
   # SPRING SERVICES #
   #########################################################################################
+  config-server:
+    image: defensedrillweb/config-server:latest
+    container_name: config-server
+    environment:
+      - EUREKA_DEFAULT_ZONE=http://server-registry:8761/eureka
+      - DOCKER_ENVIRONMENT=true
+    # Other services continue to restart until this is up. Cannot do health check because
+    # the spring-boot:build-image is very lightweight and does not have any way to do a
+    # proper health check (no 'curl', 'wget', 'test', or anything)
+    restart: unless-stopped
+
+  server-registry:
+    image: defensedrillweb/server-registry:latest
+    container_name: server-registry
+    ports:
+      - "8761:8761"
+    environment:
+      - CONFIG_SERVER=http://config-server:8888
+    restart: unless-stopped
 
   #########################################################################################
   # SUPPORT SERVICES #

@@ -24,8 +24,8 @@
 # limitations under the License.
 #
 
-# Hard code this in the proper startup order
-MICROSERVICES := config-server server-registry rest-api security mvc gateway
+# Hard code this in the proper startup order #TODO: MAKE SURE ALL THESE AR UNCOMMENTED
+MICROSERVICES := config-server server-registry #rest-api security mvc gateway
 
 #########################################################################################
 # SPRING VARIABLES #
