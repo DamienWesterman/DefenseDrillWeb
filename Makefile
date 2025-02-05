@@ -24,38 +24,19 @@
 # limitations under the License.
 #
 
+### TODO LIST ###
+# TODO: Do what it takes for the testing ones to work
+# TODO: Get create-docker-images
+# TODO: Do what it takes to get run-dev-docker working
+# TODO: have doc comments for each make target
+
+
+# Other todos
 # TODO: Maybe have an interactive docker configs session? Or something, prompt the user
 # TODO: Have all the configuration files as templates then copy them over and .gitignore them
 # TODO: make a diagram somewhere of the make system and what interacts with what configurations and build rules and docker-compose files and profiles
 
-DOCKER_COMPOSE_CMD := docker compose
-DOCKER_CONFIG_DIR := ./docker-configs
-DOCKER_ENVIRONMENT_FILE := defense_drill.env
-DOCKER_ENVIRONMENT_FILE_PATH := ${DOCKER_CONFIG_DIR}/${DOCKER_ENVIRONMENT_FILE}
-DOCKER_ENVIRONMENT_TEMPLATE_PATH := ${DOCKER_CONFIG_DIR}/.${DOCKER_ENVIRONMENT_FILE}.template
-
-DOCKER_DEV_DEPENDENCIES =
-
-DOCKER_DEV_DEPENDENCIES += api-database
-DOCKER_DEV_DEFINITIONS += API_POSTGRES_USER=root
-DOCKER_DEV_DEFINITIONS += API_POSTGRES_PASSWORD=root
-
-DOCKER_DEV_DEPENDENCIES += zipkin
-
-DOCKER_DEV_DEPENDENCIES += security-database
-DOCKER_DEV_DEFINITIONS += SECURITY_POSTGRES_USER=root
-DOCKER_DEV_DEFINITIONS += SECURITY_POSTGRES_PASSWORD=root
-
-DOCKER_DEV_DEPENDENCIES += vault
-DOCKER_DEV_DEFINITIONS += VAULT_TOKEN=myroot
-
-DOCKER_DEV_DEPENDENCIES += video-server
-UID := $(shell id -u)
-GID := $(shell id -g)
-DOCKER_DEV_DEFINITIONS += UID=${UID}
-DOCKER_DEV_DEFINITIONS += GID=${GID}
-
-DOCKER_DEV_DEPENDENCIES += file-server
+include Constants.mk
 
 # TODO: add all .PHONY
 .PHONY: init help run-dev-local run-dev-docker run-prod test-dev-local test-dev-docker test-prod clean docker-build docker-upload
@@ -106,16 +87,8 @@ run-prod:
 	@echo MAKING $@
 #TODO: finish me
 
-test-dev-local:
-	@echo MAKING $@
-#TODO: finish me
-
-test-dev-docker:
-	@echo MAKING $@
-#TODO: finish me
-
-test-prod:
-	@echo MAKING $@
+test: run-dev-local
+# ./mvnw test
 #TODO: finish me
 
 clean:
@@ -124,6 +97,7 @@ clean:
 
 docker-build:
 	@echo MAKING $@
+# Merits of build-image vs build-image-no-fork?
 #TODO: finish me
 
 docker-upload:
@@ -151,7 +125,6 @@ help:
 	@echo "   make run-prod       : Run the application in a docker production environment. Configures and"
 	@echo "                       : launches the docker-compose.yaml."
 # TODO: add stop-dev-local, and any others too
-# TODO: figure out how I want to do the test stuff? Unit vs integration? All in docker? Just launch docker base images then run the spring one by one and keep up config server/etc?
 	@echo "   make clean          : Clean each microservice."
 	@echo "   make docker-build   : Build and save docker images for each microservice."
 	@echo "   make docker-upload  : Build and upload docker images of each microservice to a remote repo."

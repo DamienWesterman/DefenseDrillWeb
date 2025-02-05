@@ -1,3 +1,29 @@
+# /****************************\
+# *      ________________      *
+# *     /  _             \     *
+# *     \   \ |\   _  \  /     *
+# *      \  / | \ / \  \/      *
+# *      /  \ | / | /  /\      *
+# *     /  _/ |/  \__ /  \     *
+# *     \________________/     *
+# *                            *
+# \****************************/
+#
+# Copyright 2024 Damien Westerman
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 # TODO: figure out exporting logs
 # TODO: create a docker-compose for production that uses images from my remote docker repo or something (configurable what repo)
 # TODO: figure out what needs to be changed for a dev profile and production. Might need different docker-compose files
@@ -88,7 +114,7 @@ services:
   file-server:
     image: filebrowser/filebrowser
     ports:
-      - "8097:80"  # Exposes FileBrowser on http://localhost:8081
+      - "8097:80"
     volumes:
       - video-server-media:/srv
       # TODO: Configure
