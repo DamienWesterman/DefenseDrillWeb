@@ -60,8 +60,11 @@ ${PROD_CONFIGURATION_CONFIRMATION_FILE}:
 #	6. export VAULT_TOKEN=your_vault_token
 #	7. vault secrets enable -path=secret -version=1 kv
 #	8. Save the root token in the docker environment file
+#	9. Go back into the webpage and refresh, click into secrets and make the following:
+#		create secret -> path=security key=jwtPrivateKey value=YOUR_JWT_PRIVATE_KEY_VALUE
+#		create secret -> path=public key=jwtPublicKey value=YOUR_JWT_PUBLIC_KEY
+#
 
-	${DOCKER_COMPOSE_CMD_PROD} up -d vault
 # -@ rm ${DOCKER_ENVIRONMENT_FILE_PATH}
 # @${DOCKER_COMPOSE_CMD} stop
 # @$(MAKE) build-images

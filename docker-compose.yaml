@@ -25,10 +25,8 @@
 #
 
 # TODO: figure out exporting logs
-# TODO: create a docker-compose for production that uses images from my remote docker repo or something (configurable what repo)
-# TODO: figure out what needs to be changed for a dev profile and production. Might need different docker-compose files
 # TODO: add healthchecks, dependencies, and restart conditions
-# TODO: Add docker zipkin endpoints to applicable microservices, and put a tile for it on the home page
+# TODO: Add docker zipkin endpoints to applicable microservices
 services:
   #########################################################################################
   # SPRING SERVICES #
@@ -82,9 +80,8 @@ services:
     depends_on:
       security-database:
         condition: service_healthy
-      # TODO: Figure out the below
-      # vault:
-      #   condition: service_healthy
+      vault:
+        condition: service_healthy
 
   mvc:
     image: defensedrillweb/mvc:latest
@@ -109,22 +106,20 @@ services:
       - VAULT_URI=http://vault:8200
       - SECURITY_VAULT_TOKEN=${VAULT_TOKEN}
     restart: unless-stopped
-    # depends_on:
-      # TODO: Figure out the below
-      # vault:
-      #   condition: service_healthy
+    depends_on:
+      vault:
+        condition: service_healthy
 
   #########################################################################################
   # SUPPORT SERVICES #
   #########################################################################################
   api-database:
     image: postgres
+    container_name: api-database
     environment:
       - POSTGRES_USER=${API_POSTGRES_USER}
       - POSTGRES_PASSWORD=${API_POSTGRES_PASSWORD}
       - POSTGRES_DB=defense_drill
-    env_file:
-      - ./docker-configs/defense_drill.env
     volumes:
       - api-database-volume:/var/lib/postgresql/data
     healthcheck:
@@ -136,12 +131,11 @@ services:
 
   security-database:
     image: postgres
+    container_name: security-database
     environment:
       - POSTGRES_USER=${SECURITY_POSTGRES_USER}
       - POSTGRES_PASSWORD=${SECURITY_POSTGRES_PASSWORD}
       - POSTGRES_DB=security
-    env_file:
-      - ./docker-configs/defense_drill.env
     volumes:
       - security-database-volume:/var/lib/postgresql/data
     healthcheck:
@@ -152,19 +146,20 @@ services:
       timeout: 10s
 
   vault:
-    # TODO: figure out the --cap-add=IPC_LOCK passed in during docker run?
     image: hashicorp/vault
+    container_name: vault
     ports:
       - "8200:8200"
     environment:
       VAULT_ADDR: "http://127.0.0.1:8200"
-    env_file:
-      - ./docker-configs/defense_drill.env
-    # TODO: for prod, need to bring in a .hcl config file and copy to container
     volumes:
-      - vault-volume:/vault/data # TODO: check this in prod
-    # healthcheck:
-      # TODO: Figure this ^^ out
+      - vault-volume:/vault/data
+    healthcheck:
+      test: ["CMD", "vault", "status"]
+      interval: 60s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
 
   zipkin:
     image: openzipkin/zipkin
@@ -174,6 +169,7 @@ services:
 
   video-server:
     image: jellyfin/jellyfin
+    container_name: video-server
     user: "${UID}:${GID}"
     ports:
       - "8096:8096"
@@ -194,6 +190,7 @@ services:
 # TODO: ADD THIS TO THE DIAGRAMS
   file-server:
     image: filebrowser/filebrowser
+    container_name: file-server
     ports:
       - "8097:80"
     volumes:
