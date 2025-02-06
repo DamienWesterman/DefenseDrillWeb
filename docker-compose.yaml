@@ -25,7 +25,6 @@
 #
 
 # TODO: figure out exporting logs
-# TODO: add healthchecks, dependencies, and restart conditions
 # TODO: Add docker zipkin endpoints to applicable microservices
 services:
   #########################################################################################
@@ -179,15 +178,7 @@ services:
       - video-server-config:/config
       - video-server-media:/media
     restart: 'unless-stopped'
-    # Optional - alternative address used for autodiscovery
-    # TODO: set this up like https://gateway.com/jellyfin or whatever path I end up making
-    # environment:
-    #   - JELLYFIN_PublishedServerUrl=http://example.com
-    # Optional - may be necessary for docker healthcheck to pass if running in host network mode
-    # extra_hosts:
-    #   - 'host.docker.internal:host-gateway'
 
-# TODO: ADD THIS TO THE DIAGRAMS
   file-server:
     image: filebrowser/filebrowser
     container_name: file-server

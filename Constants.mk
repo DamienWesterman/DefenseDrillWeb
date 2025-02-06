@@ -30,7 +30,7 @@ PRIVATE_IP_ADDRESS := ${shell hostname -I | awk '{print $$1;}'}
 
 DOCKER_FILE_COMMON := ./docker-compose.yaml
 DOCKER_FILE_DEV := ./docker-compose.dev.yaml
-DOCKER_FILE_DEV := ./docker-compose.prod.yaml
+DOCKER_FILE_PROD := ./docker-compose.prod.yaml
 DOCKER_COMPOSE_CMD := docker compose
 DOCKER_COMPOSE_CMD_DEV := ${DOCKER_COMPOSE_CMD} -f ${DOCKER_FILE_COMMON} -f ${DOCKER_FILE_DEV}
 DOCKER_COMPOSE_CMD_PROD := ${DOCKER_COMPOSE_CMD} -f ${DOCKER_FILE_COMMON} -f ${DOCKER_FILE_PROD}

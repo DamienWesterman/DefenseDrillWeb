@@ -51,6 +51,7 @@ configure-prod: ${PROD_CONFIGURATION_CONFIRMATION_FILE}
 
 ${PROD_CONFIGURATION_CONFIRMATION_FILE}:
 # TODO: Clear the environment file first
+# TODO: FIXME: follow these instructions and make sure make launch works, then write this in make
 # TODO LIST:
 #	1. Start vault
 #	2. Enter into the vault - docker compose exec -it vault sh
@@ -63,7 +64,11 @@ ${PROD_CONFIGURATION_CONFIRMATION_FILE}:
 #	9. Go back into the webpage and refresh, click into secrets and make the following:
 #		create secret -> path=security key=jwtPrivateKey value=YOUR_JWT_PRIVATE_KEY_VALUE
 #		create secret -> path=public key=jwtPublicKey value=YOUR_JWT_PUBLIC_KEY
-#
+#	10. Just create the api and security database username and password, that's it
+#	11. Start up file server -> default user/pass is admin/admin, change if you want
+#	12. Start up jellyfin
+#		Follow through -> add media library -> content type/display name = whatever -> Folders=/media
+# Don't forget to change the default admin username and password from adminadmin
 
 # -@ rm ${DOCKER_ENVIRONMENT_FILE_PATH}
 # @${DOCKER_COMPOSE_CMD} stop
@@ -74,11 +79,12 @@ ${PROD_CONFIGURATION_CONFIRMATION_FILE}:
 # Launch the docker microservices in a production environment
 launch: ${PROD_CONFIGURATION_CONFIRMATION_FILE}
 # Make sure the docker compose environment configuration exists before launching
-	@test -f ${DOCKER_ENVIRONMENT_FILE_PATH} || { \
-			cp ${DOCKER_ENVIRONMENT_TEMPLATE_PATH} ${DOCKER_ENVIRONMENT_FILE_PATH}; \
-			echo "Please fill out fields in ${DOCKER_ENVIRONMENT_FILE_PATH} before continuing!"; \
-			exit 1; \
-		}
+# @test -f ${DOCKER_ENVIRONMENT_FILE_PATH} || { \
+# 		cp ${DOCKER_ENVIRONMENT_TEMPLATE_PATH} ${DOCKER_ENVIRONMENT_FILE_PATH}; \
+# 		echo "Please fill out fields in ${DOCKER_ENVIRONMENT_FILE_PATH} before continuing!"; \
+# 		exit 1; \
+# 	}
+	${DOCKER_PROD_DEFINITIONS} ${DOCKER_COMPOSE_CMD_PROD} up -d
 #TODO: finish me
 
 shutdown:
