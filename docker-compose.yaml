@@ -28,7 +28,7 @@
 # TODO: create a docker-compose for production that uses images from my remote docker repo or something (configurable what repo)
 # TODO: figure out what needs to be changed for a dev profile and production. Might need different docker-compose files
 # TODO: add healthchecks, dependencies, and restart conditions
-# TODO: Add docker zipkin endpoints to applicable microservices
+# TODO: Add docker zipkin endpoints to applicable microservices, and put a tile for it on the home page
 services:
   #########################################################################################
   # SPRING SERVICES #
@@ -90,9 +90,9 @@ services:
     image: defensedrillweb/mvc:latest
     container_name: mvc
     environment:
-      # TODO: FIXME: pass in the ip address, which will likely need to be extracted from ip a or something, then propogate it down to MVC, see how we did it with environment variables in security
       - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES}
       - CONFIG_SERVER=http://config-server:8888
+      - PRIVATE_IP_ADDRESS=${PRIVATE_IP_ADDRESS}
       - EUREKA_DEFAULT_ZONE=http://server-registry:8761/eureka
     restart: unless-stopped
 
@@ -119,9 +119,6 @@ services:
   #########################################################################################
   api-database:
     image: postgres
-    # TODO: Conditionally do this?
-    # ports:
-    #   - "5432:5432"
     environment:
       - POSTGRES_USER=${API_POSTGRES_USER}
       - POSTGRES_PASSWORD=${API_POSTGRES_PASSWORD}
@@ -139,9 +136,6 @@ services:
 
   security-database:
     image: postgres
-    # TODO: conditionally do this?
-    # ports:
-    #   - "9998:5432"
     environment:
       - POSTGRES_USER=${SECURITY_POSTGRES_USER}
       - POSTGRES_PASSWORD=${SECURITY_POSTGRES_PASSWORD}

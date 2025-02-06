@@ -25,8 +25,6 @@
 #
 
 ### TODO LIST ###
-# TODO: Get create-docker-images
-# TODO: Do what it takes to get run-dev-docker working
 # TODO: have doc comments for each make target
 
 
@@ -62,12 +60,10 @@ init:
 	@echo All repos have been imported. Please fill out fields in ${DOCKER_ENVIRONMENT_FILE_PATH}!
 
 run-dev-local:
-	${DOCKER_DEV_DEFINITIONS} ${DOCKER_COMPOSE_CMD} up -d ${DOCKER_DEV_DEPENDENCIES}
+	${DOCKER_DEV_DEFINITIONS} ${DOCKER_COMPOSE_CMD} -f ${DOCKER_FILE_COMMON} -f ${DOCKER_FILE_DEV} up -d ${DOCKER_DEV_DEPENDENCIES}
 
 run-dev-docker:
-	${DOCKER_DEV_DEFINITIONS} ${DOCKER_COMPOSE_CMD} up -d ${DOCKER_DEV_DEPENDENCIES} ${MICROSERVICES}
-# Specify SPRING_PROFILES_ACTIVE=dev-docker
-#TODO: finish me
+	${DOCKER_DEV_DEFINITIONS} ${DOCKER_COMPOSE_CMD} -f ${DOCKER_FILE_COMMON} -f ${DOCKER_FILE_DEV} up -d ${DOCKER_DEV_DEPENDENCIES} ${MICROSERVICES}
 
 stop-dev-local:
 	${DOCKER_DEV_DEFINITIONS} ${DOCKER_COMPOSE_CMD} stop

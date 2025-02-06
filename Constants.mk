@@ -26,16 +26,12 @@
 
 # Hard code this in the proper startup order #TODO: MAKE SURE ALL THESE AR UNCOMMENTED
 MICROSERVICES := config-server server-registry rest-api security mvc gateway
+PRIVATE_IP_ADDRESS := ${shell hostname -I | awk '{print $$1;}'}
 
-#########################################################################################
-# SPRING VARIABLES #
-#########################################################################################
-
-#########################################################################################
-# DOCKER VARIABLES #
-#########################################################################################
 DOCKER_COMPOSE_CMD := docker compose
 DOCKER_CONFIG_DIR := ./docker-configs
+DOCKER_FILE_COMMON := ./docker-compose.yaml
+DOCKER_FILE_DEV := ./docker-compose.dev.yaml
 DOCKER_ENVIRONMENT_FILE := defense_drill.env
 DOCKER_ENVIRONMENT_FILE_PATH := ${DOCKER_CONFIG_DIR}/${DOCKER_ENVIRONMENT_FILE}
 DOCKER_ENVIRONMENT_TEMPLATE_PATH := ${DOCKER_CONFIG_DIR}/.${DOCKER_ENVIRONMENT_FILE}.template
@@ -44,6 +40,7 @@ DOCKER_DEV_DEPENDENCIES =
 DOCKER_DEV_DEFINITIONS =
 
 DOCKER_DEV_DEFINITIONS += SPRING_PROFILES=dev
+DOCKER_DEV_DEFINITIONS += PRIVATE_IP_ADDRESS=${PRIVATE_IP_ADDRESS}
 
 DOCKER_DEV_DEPENDENCIES += api-database
 DOCKER_DEV_DEFINITIONS += API_POSTGRES_USER=root
