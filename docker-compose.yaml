@@ -28,6 +28,7 @@
 # TODO: create a docker-compose for production that uses images from my remote docker repo or something (configurable what repo)
 # TODO: figure out what needs to be changed for a dev profile and production. Might need different docker-compose files
 # TODO: add healthchecks, dependencies, and restart conditions
+# TODO: Add docker zipkin endpoints to applicable microservices
 services:
   #########################################################################################
   # SPRING SERVICES #
@@ -37,7 +38,6 @@ services:
     container_name: config-server
     environment:
       - EUREKA_DEFAULT_ZONE=http://server-registry:8761/eureka
-      - DOCKER_ENVIRONMENT=true
     # Other services continue to restart until this is up. Cannot do health check because
     # the spring-boot:build-image is very lightweight and does not have any way to do a
     # proper health check (no 'curl', 'wget', 'test', or anything)
@@ -46,19 +46,82 @@ services:
   server-registry:
     image: defensedrillweb/server-registry:latest
     container_name: server-registry
-    ports:
-      - "8761:8761"
     environment:
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES}
       - CONFIG_SERVER=http://config-server:8888
     restart: unless-stopped
+
+  rest-api:
+    image: defensedrillweb/rest-api:latest
+    container_name: rest-api
+    environment:
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES}
+      - CONFIG_SERVER=http://config-server:8888
+      - REST_API_DB_URL=jdbc:postgresql://api-database:5432/defense_drill
+      - POSTGRES_USER=${API_POSTGRES_PASSWORD}
+      - POSTGRES_PASSWORD=${API_POSTGRES_PASSWORD}
+      - EUREKA_DEFAULT_ZONE=http://server-registry:8761/eureka
+    restart: unless-stopped
+    depends_on:
+      api-database:
+        condition: service_healthy
+
+  security:
+    image: defensedrillweb/security:latest
+    container_name: security
+    environment:
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES}
+      - CONFIG_SERVER=http://config-server:8888
+      - SECURITY_API_DB_URL=jdbc:postgresql://security-database:5432/security
+      - POSTGRES_USER=${SECURITY_POSTGRES_USER}
+      - POSTGRES_PASSWORD=${SECURITY_POSTGRES_PASSWORD}
+      - VAULT_URI=http://vault:8200
+      - SECURITY_VAULT_TOKEN=${VAULT_TOKEN}
+      - EUREKA_DEFAULT_ZONE=http://server-registry:8761/eureka
+    restart: unless-stopped
+    depends_on:
+      security-database:
+        condition: service_healthy
+      # TODO: Figure out the below
+      # vault:
+      #   condition: service_healthy
+
+  mvc:
+    image: defensedrillweb/mvc:latest
+    container_name: mvc
+    environment:
+      # TODO: FIXME: pass in the ip address, which will likely need to be extracted from ip a or something, then propogate it down to MVC, see how we did it with environment variables in security
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES}
+      - CONFIG_SERVER=http://config-server:8888
+      - EUREKA_DEFAULT_ZONE=http://server-registry:8761/eureka
+    restart: unless-stopped
+
+  gateway:
+    image: defensedrillweb/gateway
+    container_name: gateway
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES}
+      - CONFIG_SERVER=http://config-server:8888
+      - EUREKA_DEFAULT_ZONE=http://server-registry:8761/eureka
+      - JELLYFIN_URL=http://jellyfin:8096
+      - VAULT_URI=http://vault:8200
+      - SECURITY_VAULT_TOKEN=${VAULT_TOKEN}
+    restart: unless-stopped
+    # depends_on:
+      # TODO: Figure out the below
+      # vault:
+      #   condition: service_healthy
 
   #########################################################################################
   # SUPPORT SERVICES #
   #########################################################################################
   api-database:
     image: postgres
-    ports:
-      - "5432:5432"
+    # TODO: Conditionally do this?
+    # ports:
+    #   - "5432:5432"
     environment:
       - POSTGRES_USER=${API_POSTGRES_USER}
       - POSTGRES_PASSWORD=${API_POSTGRES_PASSWORD}
@@ -76,8 +139,9 @@ services:
 
   security-database:
     image: postgres
-    ports:
-      - "9998:5432"
+    # TODO: conditionally do this?
+    # ports:
+    #   - "9998:5432"
     environment:
       - POSTGRES_USER=${SECURITY_POSTGRES_USER}
       - POSTGRES_PASSWORD=${SECURITY_POSTGRES_PASSWORD}
@@ -147,10 +211,6 @@ services:
       # - ./path/to/filebrowser.db:/database/filebrowser.db
       # - ./path/to/settings.json:/config/settings.json  # Mount the settings file
     restart: unless-stopped
-
-
-  # REST_API_DB_URL=jdbc:postgresql://api-database:5432/defense_drill
-  # SECURITY_API_DB_URL=jdbc:postgresql://security-database:5432/security
 
 volumes:
   api-database-volume:

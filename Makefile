@@ -31,6 +31,7 @@
 
 
 # Other todos
+# TODO: Make sure that swagger goes through the gateway, otherwise vulnerability
 # TODO: Maybe have an interactive docker configs session? Or something, prompt the user
 # TODO: Have all the configuration files as templates then copy them over and .gitignore them
 # TODO: make a diagram somewhere of the make system and what interacts with what configurations and build rules and docker-compose files and profiles

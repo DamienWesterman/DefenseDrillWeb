@@ -25,7 +25,7 @@
 #
 
 # Hard code this in the proper startup order #TODO: MAKE SURE ALL THESE AR UNCOMMENTED
-MICROSERVICES := config-server server-registry #rest-api security mvc gateway
+MICROSERVICES := config-server server-registry rest-api security mvc gateway
 
 #########################################################################################
 # SPRING VARIABLES #
@@ -41,6 +41,9 @@ DOCKER_ENVIRONMENT_FILE_PATH := ${DOCKER_CONFIG_DIR}/${DOCKER_ENVIRONMENT_FILE}
 DOCKER_ENVIRONMENT_TEMPLATE_PATH := ${DOCKER_CONFIG_DIR}/.${DOCKER_ENVIRONMENT_FILE}.template
 
 DOCKER_DEV_DEPENDENCIES =
+DOCKER_DEV_DEFINITIONS =
+
+DOCKER_DEV_DEFINITIONS += SPRING_PROFILES=dev
 
 DOCKER_DEV_DEPENDENCIES += api-database
 DOCKER_DEV_DEFINITIONS += API_POSTGRES_USER=root
