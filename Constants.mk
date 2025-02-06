@@ -24,14 +24,18 @@
 # limitations under the License.
 #
 
-# Hard code this in the proper startup order #TODO: MAKE SURE ALL THESE AR UNCOMMENTED
+# Hard code this in the proper startup order
 MICROSERVICES := config-server server-registry rest-api security mvc gateway
 PRIVATE_IP_ADDRESS := ${shell hostname -I | awk '{print $$1;}'}
 
-DOCKER_COMPOSE_CMD := docker compose
-DOCKER_CONFIG_DIR := ./docker-configs
 DOCKER_FILE_COMMON := ./docker-compose.yaml
 DOCKER_FILE_DEV := ./docker-compose.dev.yaml
+DOCKER_FILE_DEV := ./docker-compose.prod.yaml
+DOCKER_COMPOSE_CMD := docker compose
+DOCKER_COMPOSE_CMD_DEV := ${DOCKER_COMPOSE_CMD} -f ${DOCKER_FILE_COMMON} -f ${DOCKER_FILE_DEV}
+DOCKER_COMPOSE_CMD_PROD := ${DOCKER_COMPOSE_CMD} -f ${DOCKER_FILE_COMMON} -f ${DOCKER_FILE_PROD}
+DOCKER_CONFIG_DIR := ./docker-configs
+PROD_CONFIGURATION_CONFIRMATION_FILE := ${DOCKER_CONFIG_DIR}/.production_configured.txt
 DOCKER_ENVIRONMENT_FILE := defense_drill.env
 DOCKER_ENVIRONMENT_FILE_PATH := ${DOCKER_CONFIG_DIR}/${DOCKER_ENVIRONMENT_FILE}
 DOCKER_ENVIRONMENT_TEMPLATE_PATH := ${DOCKER_CONFIG_DIR}/.${DOCKER_ENVIRONMENT_FILE}.template
@@ -62,3 +66,9 @@ DOCKER_DEV_DEFINITIONS += UID=${UID}
 DOCKER_DEV_DEFINITIONS += GID=${GID}
 
 DOCKER_DEV_DEPENDENCIES += file-server
+
+DOCKER_PROD_DEFINITIONS =
+DOCKER_PROD_DEFINITIONS += SPRING_PROFILES=prod
+DOCKER_PROD_DEFINITIONS += PRIVATE_IP_ADDRESS=${PRIVATE_IP_ADDRESS}
+DOCKER_PROD_DEFINITIONS += UID=${UID}
+DOCKER_PROD_DEFINITIONS += GID=${GID}

@@ -24,10 +24,6 @@
 # limitations under the License.
 #
 
-### TODO LIST ###
-# TODO: have doc comments for each make target
-
-
 # Other todos
 # TODO: Make sure that swagger goes through the gateway, otherwise vulnerability
 # TODO: Maybe have an interactive docker configs session? Or something, prompt the user
@@ -37,12 +33,43 @@
 include Constants.mk
 
 # TODO: add all .PHONY
-.PHONY: init help run-dev-local run-dev-docker run-prod test-dev-local test-dev-docker test-prod clean docker-build docker-upload
-.DEFAULT: help
+.PHONY: init configure-prod launch shutdown run-dev-local run-dev-docker stop-dev-local stop-dev-docker remove-dev-local remove-dev-docker test clean build-images help
 .DELETE_ON_ERROR: help
 
-# Launch always uses a production/docker environment
-launch:
+
+#########################################################################################
+# LAUNCH COMMANDS #
+#########################################################################################
+# Initialize and import the spring repositories
+init:
+	repo init -u https://github.com/DamienWesterman/DefenseDrillManifests.git -m DefaultManifest.xml -b main
+	repo sync
+	@echo All repos have been imported!
+
+# Set up the production environment
+configure-prod: ${PROD_CONFIGURATION_CONFIRMATION_FILE}
+
+${PROD_CONFIGURATION_CONFIRMATION_FILE}:
+# TODO: Clear the environment file first
+# TODO LIST:
+#	1. Start vault
+#	2. Enter into the vault - docker compose exec -it vault sh
+#	3. vault operator init
+#	4. SAVE THE INITIAL ROOT TOKEN AND THE UNSEAL KEYS
+#	5. navigate to localhost:8200 (or whatever the endpoint is) and unlock using the unseal keys
+#	6. export VAULT_TOKEN=your_vault_token
+#	7. vault secrets enable -path=secret -version=1 kv
+#	8. Save the root token in the docker environment file
+
+	${DOCKER_COMPOSE_CMD_PROD} up -d vault
+# -@ rm ${DOCKER_ENVIRONMENT_FILE_PATH}
+# @${DOCKER_COMPOSE_CMD} stop
+# @$(MAKE) build-images
+# @touch ${PROD_CONFIGURATION_CONFIRMATION_FILE}
+# @echo Production Environment Configuration Complete!
+
+# Launch the docker microservices in a production environment
+launch: ${PROD_CONFIGURATION_CONFIRMATION_FILE}
 # Make sure the docker compose environment configuration exists before launching
 	@test -f ${DOCKER_ENVIRONMENT_FILE_PATH} || { \
 			cp ${DOCKER_ENVIRONMENT_TEMPLATE_PATH} ${DOCKER_ENVIRONMENT_FILE_PATH}; \
@@ -51,32 +78,33 @@ launch:
 		}
 #TODO: finish me
 
-init:
-	repo init -u https://github.com/DamienWesterman/DefenseDrillManifests.git -m DefaultManifest.xml -b main
-	repo sync
-# TODO: Change the file names to variables. Also figure out a way to encrypt the file with a password so it is secure?
-	cp ${DOCKER_ENVIRONMENT_TEMPLATE_PATH} ${DOCKER_ENVIRONMENT_FILE_PATH}
-	@echo
-	@echo All repos have been imported. Please fill out fields in ${DOCKER_ENVIRONMENT_FILE_PATH}!
+shutdown:
+#TODO: finish me
 
+#########################################################################################
+# RUN COMMANDS #
+#########################################################################################
+# Run the support microservices in docker. NO spring services
 run-dev-local:
-	${DOCKER_DEV_DEFINITIONS} ${DOCKER_COMPOSE_CMD} -f ${DOCKER_FILE_COMMON} -f ${DOCKER_FILE_DEV} up -d ${DOCKER_DEV_DEPENDENCIES}
+	${DOCKER_DEV_DEFINITIONS} ${DOCKER_COMPOSE_CMD_DEV} up -d ${DOCKER_DEV_DEPENDENCIES}
 
+# Run all microservices and spring microservices in docker. Expects existing spring images, see 'make build-images'
 run-dev-docker:
-	${DOCKER_DEV_DEFINITIONS} ${DOCKER_COMPOSE_CMD} -f ${DOCKER_FILE_COMMON} -f ${DOCKER_FILE_DEV} up -d ${DOCKER_DEV_DEPENDENCIES} ${MICROSERVICES}
+	${DOCKER_DEV_DEFINITIONS} ${DOCKER_COMPOSE_CMD_DEV} up -d ${DOCKER_DEV_DEPENDENCIES} ${MICROSERVICES}
 
+# Shut down the support microservices without destroying their storage
 stop-dev-local:
-	${DOCKER_DEV_DEFINITIONS} ${DOCKER_COMPOSE_CMD} stop
+	${DOCKER_DEV_DEFINITIONS} ${DOCKER_COMPOSE_CMD_DEV} stop
 
+# Shut down all microservices without destroying their storage
 stop-dev-docker: stop-dev-local
 
+# Shut down the support microservice and remove their storage
 remove-dev-local:
-	${DOCKER_DEV_DEFINITIONS} ${DOCKER_COMPOSE_CMD} down -v
+	${DOCKER_DEV_DEFINITIONS} ${DOCKER_COMPOSE_CMD_DEV} down -v
 
+# Shut down all microservice and remove their storage
 remove-dev-docker: stop-dev-docker remove-dev-local
-
-run-prod:
-#TODO: finish me
 
 #########################################################################################
 # TEST #
@@ -131,10 +159,10 @@ build-images: test
 		./mvnw spring-boot:build-image -DskipTests -Dspring-boot.build-image.imageName=defensedrillweb/$$service:latest;	\
 	done
 
-docker-upload:
-#TODO: finish me, check for credentials?
-# TODO: Make the images as the regular ones and upload with version number AND latest
-
+#########################################################################################
+# HELP MESSAGE #
+#########################################################################################
+# Display the help message
 # TODO: update the below
 help:
 	@echo

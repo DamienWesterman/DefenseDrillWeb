@@ -28,39 +28,13 @@ services:
   #########################################################################################
   # SPRING SERVICES #
   #########################################################################################
-  config-server:
-    ports:
-      - "8888:8888"
-
-  server-registry:
-    ports:
-      - "8761:8761"
-
-  rest-api:
-    ports:
-      - "5433:5433"
-
-  security:
-    ports:
-      - "9999:9999"
-
-  mvc:
-    ports:
-      - "8081:8081"
 
   #########################################################################################
   # SUPPORT SERVICES #
   #########################################################################################
-  api-database:
-    ports:
-      - "5432:5432"
-
-  security-database:
-    ports:
-      - "9998:5432"
-
   vault:
-    environment:
-      - VAULT_DEV_ROOT_TOKEN_ID=${VAULT_TOKEN}
-      - VAULT_TOKEN=${VAULT_TOKEN}
-      - VAULT_DEV_LISTEN_ADDRESS=0.0.0.0:8200
+    volumes:
+      - ./docker-configs/vault-config.hcl:/vault/config/vault.hcl
+    cap_add:
+      - IPC_LOCK
+    entrypoint: vault server -config=/vault/config/vault.hcl
