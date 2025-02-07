@@ -28,6 +28,8 @@
 MICROSERVICES := config-server server-registry rest-api security mvc gateway
 PRIVATE_IP_ADDRESS := ${shell hostname -I | awk '{print $$1;}'}
 
+WAIT_FOR_USER_PROMPT := read -p "Press enter to continue..." ignore_var < /dev/tty
+
 DOCKER_FILE_COMMON := ./docker-compose.yaml
 DOCKER_FILE_DEV := ./docker-compose.dev.yaml
 DOCKER_FILE_PROD := ./docker-compose.prod.yaml
@@ -36,9 +38,7 @@ DOCKER_COMPOSE_CMD_DEV := ${DOCKER_COMPOSE_CMD} -f ${DOCKER_FILE_COMMON} -f ${DO
 DOCKER_COMPOSE_CMD_PROD := ${DOCKER_COMPOSE_CMD} -f ${DOCKER_FILE_COMMON} -f ${DOCKER_FILE_PROD}
 DOCKER_CONFIG_DIR := ./docker-configs
 PROD_CONFIGURATION_CONFIRMATION_FILE := ${DOCKER_CONFIG_DIR}/.production_configured.txt
-DOCKER_ENVIRONMENT_FILE := defense_drill.env
-DOCKER_ENVIRONMENT_FILE_PATH := ${DOCKER_CONFIG_DIR}/${DOCKER_ENVIRONMENT_FILE}
-DOCKER_ENVIRONMENT_TEMPLATE_PATH := ${DOCKER_CONFIG_DIR}/.${DOCKER_ENVIRONMENT_FILE}.template
+DOCKER_ENVIRONMENT_FILE := ./.env
 
 DOCKER_DEV_DEPENDENCIES =
 DOCKER_DEV_DEFINITIONS =

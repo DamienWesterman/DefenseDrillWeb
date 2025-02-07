@@ -55,7 +55,7 @@ services:
       - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES}
       - CONFIG_SERVER=http://config-server:8888
       - REST_API_DB_URL=jdbc:postgresql://api-database:5432/defense_drill
-      - POSTGRES_USER=${API_POSTGRES_PASSWORD}
+      - POSTGRES_USER=${API_POSTGRES_USER}
       - POSTGRES_PASSWORD=${API_POSTGRES_PASSWORD}
       - EUREKA_DEFAULT_ZONE=http://server-registry:8761/eureka
     restart: unless-stopped

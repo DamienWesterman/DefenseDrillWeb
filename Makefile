@@ -32,63 +32,108 @@
 
 include Constants.mk
 
-# TODO: add all .PHONY
-.PHONY: init configure-prod launch shutdown run-dev-local run-dev-docker stop-dev-local stop-dev-docker remove-dev-local remove-dev-docker test clean build-images help
+.PHONY: init configure-prod launch shutdown remove-prod run-dev-local run-dev-docker stop-dev-local stop-dev-docker remove-dev-local remove-dev-docker test clean build-images help
 .DELETE_ON_ERROR: help
 
-
-#########################################################################################
-# LAUNCH COMMANDS #
-#########################################################################################
 # Initialize and import the spring repositories
 init:
 	repo init -u https://github.com/DamienWesterman/DefenseDrillManifests.git -m DefaultManifest.xml -b main
 	repo sync
 	@echo All repos have been imported!
 
+#########################################################################################
+# PRODUCTION COMMANDS #
+#########################################################################################
 # Set up the production environment
 configure-prod: ${PROD_CONFIGURATION_CONFIRMATION_FILE}
 
 ${PROD_CONFIGURATION_CONFIRMATION_FILE}:
-# TODO: Clear the environment file first
-# TODO: FIXME: follow these instructions and make sure make launch works, then write this in make
-# TODO LIST:
-#	1. Start vault
-#	2. Enter into the vault - docker compose exec -it vault sh
-#	3. vault operator init
-#	4. SAVE THE INITIAL ROOT TOKEN AND THE UNSEAL KEYS
-#	5. navigate to localhost:8200 (or whatever the endpoint is) and unlock using the unseal keys
-#	6. export VAULT_TOKEN=your_vault_token
-#	7. vault secrets enable -path=secret -version=1 kv
-#	8. Save the root token in the docker environment file
-#	9. Go back into the webpage and refresh, click into secrets and make the following:
-#		create secret -> path=security key=jwtPrivateKey value=YOUR_JWT_PRIVATE_KEY_VALUE
-#		create secret -> path=public key=jwtPublicKey value=YOUR_JWT_PUBLIC_KEY
-#	10. Just create the api and security database username and password, that's it
-#	11. Start up file server -> default user/pass is admin/admin, change if you want
-#	12. Start up jellyfin
-#		Follow through -> add media library -> content type/display name = whatever -> Folders=/media
-# Don't forget to change the default admin username and password from adminadmin
+	@echo "" > ${DOCKER_ENVIRONMENT_FILE}
+	@${DOCKER_COMPOSE_CMD} stop
+# TODO: big message about hey follow these damn instructions, and some confirmation
 
-# -@ rm ${DOCKER_ENVIRONMENT_FILE_PATH}
-# @${DOCKER_COMPOSE_CMD} stop
-# @$(MAKE) build-images
-# @touch ${PROD_CONFIGURATION_CONFIRMATION_FILE}
-# @echo Production Environment Configuration Complete!
+# 	Configure Vault
+	@echo "Configuring vault\n------------------------------"
+	${DOCKER_PROD_DEFINITIONS} ${DOCKER_COMPOSE_CMD_PROD} up -d vault
+	@echo "Vault has started, open a new terminal and execute: (keep this terminal open)"
+	@echo "\tdocker compose exec -it vault sh"
+	@${WAIT_FOR_USER_PROMPT}
+	@echo "Run the following command to initialize the vault:"
+	@echo "\tvault operator init"
+	@${WAIT_FOR_USER_PROMPT}
+	@echo "\nMAKE SURE TO SAVE THE GENERATED UNSEAL KEYS AND GENERATED ROOT TOKEN\n"
+	@echo "Navigate to the below URL and unlock the vault using 3 of the unseal keys: (keep this tab open)"
+	@echo "\thttp://localhost:8200"
+	@${WAIT_FOR_USER_PROMPT}
+	@echo "Back in the other terminal, run the following commands, ensuring to replace <your_token> with the vault generated root token:"
+	@echo "\texport VAULT_TOKEN=<your_token>"
+	@echo "\tvault secrets enable -path=secret -version=1 kv"
+	@${WAIT_FOR_USER_PROMPT}
+	@echo "Go back to the webpage, sign in with your root token, click 'secret/', click 'Create secret', and create the following two secrets:"
+	@echo "\tJWT Private key: path=security, key=jwtPrivateKey, value=<your_JWT_private_key>"
+	@echo "\tJWT Public key: path=public, key=jwtPublicKey, value=<your_JWT_public_key>"
+	@${WAIT_FOR_USER_PROMPT}
+	@read -p "Please input the root token here to same to the docker environment: " MY_VAR < /dev/tty && \
+		echo VAULT_TOKEN=$$MY_VAR >> ${DOCKER_ENVIRONMENT_FILE}
+	@echo "Vault configuration complete, you may now close the webpage and other terminal"
+	@${WAIT_FOR_USER_PROMPT}
+
+#	Configure Databases
+	@echo "\n\nConfiguring Databases\n------------------------------"
+	@read -p "Create the api database admin username:  " MY_VAR < /dev/tty && \
+		echo API_POSTGRES_USER=$$MY_VAR >> ${DOCKER_ENVIRONMENT_FILE}
+	@read -p "Create the api database admin password:  " MY_VAR < /dev/tty && \
+		echo API_POSTGRES_PASSWORD=$$MY_VAR >> ${DOCKER_ENVIRONMENT_FILE}
+	@read -p "Create the security database admin username:  " MY_VAR < /dev/tty && \
+		echo SECURITY_POSTGRES_USER=$$MY_VAR >> ${DOCKER_ENVIRONMENT_FILE}
+	@read -p "Create the security database admin password:  " MY_VAR < /dev/tty && \
+		echo SECURITY_POSTGRES_PASSWORD=$$MY_VAR >> ${DOCKER_ENVIRONMENT_FILE}
+	@echo "Database configurations complete"
+	@${WAIT_FOR_USER_PROMPT}
+
+#	Configure file server
+	@echo "\n\nConfiguring file server\n------------------------------"
+	${DOCKER_PROD_DEFINITIONS} ${DOCKER_COMPOSE_CMD_PROD} up -d file-server
+	@echo "File server has started, navigate to the following URL: (keep this tab open)"
+	@echo "\thttp://localhost:8097"
+	@${WAIT_FOR_USER_PROMPT}
+	@echo "Not much has to be done here unless you want to change the login information. Default is admin/admin"
+	@${WAIT_FOR_USER_PROMPT}
+
+#	Configure the video server (Jellyfin)
+	@echo "\n\nConfiguring video server\n------------------------------"
+	${DOCKER_PROD_DEFINITIONS} ${DOCKER_COMPOSE_CMD_PROD} up -d video-server
+	@echo "Video server has started, navigate to the following URL: (keep this tab open)"
+	@echo "\thttp://localhost:8096"
+	@${WAIT_FOR_USER_PROMPT}
+	@echo "Follow the startup prompts, and make sure you 'Add Media Library' using the following:"
+	@echo "\tContent Type: Any"
+	@echo "\tDisplay name: Anything"
+	@echo "\tClick to add a Folder and select: '\media'"
+	@echo "All other options are up to you"
+	@${WAIT_FOR_USER_PROMPT}
+
+#	Configure gateway TLS cert
+# TODO: FINISH THE ABOVE
+
+#	Prompt user to save default login (adminadmin)
+# TODO: FINISH THE ABOVE
+
+	@${DOCKER_COMPOSE_CMD} stop
+	@$(MAKE) build-images
+	@touch ${PROD_CONFIGURATION_CONFIRMATION_FILE}
+	@echo Production Environment Configuration Complete!
 
 # Launch the docker microservices in a production environment
 launch: ${PROD_CONFIGURATION_CONFIRMATION_FILE}
-# Make sure the docker compose environment configuration exists before launching
-# @test -f ${DOCKER_ENVIRONMENT_FILE_PATH} || { \
-# 		cp ${DOCKER_ENVIRONMENT_TEMPLATE_PATH} ${DOCKER_ENVIRONMENT_FILE_PATH}; \
-# 		echo "Please fill out fields in ${DOCKER_ENVIRONMENT_FILE_PATH} before continuing!"; \
-# 		exit 1; \
-# 	}
+# TODO: Big message about unlocking the vault
 	${DOCKER_PROD_DEFINITIONS} ${DOCKER_COMPOSE_CMD_PROD} up -d
-#TODO: finish me
 
 shutdown:
-#TODO: finish me
+	${DOCKER_COMPOSE_CMD_PROD} stop
+
+remove-prod:
+# TODO: FINISH ME make sure to have the user input that they are sure, then maybe again and again
 
 #########################################################################################
 # RUN COMMANDS #
