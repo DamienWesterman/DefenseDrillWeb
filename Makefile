@@ -26,8 +26,6 @@
 
 # Other todos
 # TODO: Make sure that swagger goes through the gateway, otherwise vulnerability
-# TODO: Maybe have an interactive docker configs session? Or something, prompt the user
-# TODO: Have all the configuration files as templates then copy them over and .gitignore them
 # TODO: make a diagram somewhere of the make system and what interacts with what configurations and build rules and docker-compose files and profiles
 
 include Constants.mk
@@ -48,9 +46,16 @@ init:
 configure-prod: ${PROD_CONFIGURATION_CONFIRMATION_FILE}
 
 ${PROD_CONFIGURATION_CONFIRMATION_FILE}:
+#	Print a big flashing message to follow instructions
+	@echo "\033[5;30;103m *** Please pay attention and follow the subsequent instructions carefully *** \033[0m"
 	@echo "" > ${DOCKER_ENVIRONMENT_FILE}
+
+#	Create the spring microservice docker images
+	@echo "Creating microservice docker images\n------------------------------"
+	@echo "We will now run units tests and build the docker images, this could take up to 10 minutes..."
+	@${WAIT_FOR_USER_PROMPT}
 	@${DOCKER_COMPOSE_CMD} stop
-# TODO: big message about hey follow these damn instructions, and some confirmation
+	@$(MAKE) build-images
 
 # 	Configure Vault
 	@echo "Configuring vault\n------------------------------"
@@ -73,20 +78,20 @@ ${PROD_CONFIGURATION_CONFIRMATION_FILE}:
 	@echo "\tJWT Private key: path=security, key=jwtPrivateKey, value=<your_JWT_private_key>"
 	@echo "\tJWT Public key: path=public, key=jwtPublicKey, value=<your_JWT_public_key>"
 	@${WAIT_FOR_USER_PROMPT}
-	@read -p "Please input the root token here to same to the docker environment: " MY_VAR < /dev/tty && \
+	@read -p "Please input the root token here to save to the docker environment: " MY_VAR < /dev/tty && \
 		echo VAULT_TOKEN=$$MY_VAR >> ${DOCKER_ENVIRONMENT_FILE}
 	@echo "Vault configuration complete, you may now close the webpage and other terminal"
 	@${WAIT_FOR_USER_PROMPT}
 
 #	Configure Databases
 	@echo "\n\nConfiguring Databases\n------------------------------"
-	@read -p "Create the api database admin username:  " MY_VAR < /dev/tty && \
+	@read -p "Create a username for the api database admin:  " MY_VAR < /dev/tty && \
 		echo API_POSTGRES_USER=$$MY_VAR >> ${DOCKER_ENVIRONMENT_FILE}
-	@read -p "Create the api database admin password:  " MY_VAR < /dev/tty && \
+	@read -p "Create a password for the api database admin:  " MY_VAR < /dev/tty && \
 		echo API_POSTGRES_PASSWORD=$$MY_VAR >> ${DOCKER_ENVIRONMENT_FILE}
-	@read -p "Create the security database admin username:  " MY_VAR < /dev/tty && \
+	@read -p "Create a username for the security database admin:  " MY_VAR < /dev/tty && \
 		echo SECURITY_POSTGRES_USER=$$MY_VAR >> ${DOCKER_ENVIRONMENT_FILE}
-	@read -p "Create the security database admin password:  " MY_VAR < /dev/tty && \
+	@read -p "Create a password for the security database admin:  " MY_VAR < /dev/tty && \
 		echo SECURITY_POSTGRES_PASSWORD=$$MY_VAR >> ${DOCKER_ENVIRONMENT_FILE}
 	@echo "Database configurations complete"
 	@${WAIT_FOR_USER_PROMPT}
@@ -97,7 +102,9 @@ ${PROD_CONFIGURATION_CONFIRMATION_FILE}:
 	@echo "File server has started, navigate to the following URL: (keep this tab open)"
 	@echo "\thttp://localhost:8097"
 	@${WAIT_FOR_USER_PROMPT}
-	@echo "Not much has to be done here unless you want to change the login information. Default is admin/admin"
+	@echo "Not much has to be done here unless you want to change the login information."
+	@echo "\tDefault username: admin"
+	@echo "\tDefault password: admin"
 	@${WAIT_FOR_USER_PROMPT}
 
 #	Configure the video server (Jellyfin)
@@ -112,6 +119,8 @@ ${PROD_CONFIGURATION_CONFIRMATION_FILE}:
 	@echo "\tClick to add a Folder and select: '\media'"
 	@echo "All other options are up to you"
 	@${WAIT_FOR_USER_PROMPT}
+	@echo "Press enter once you have finished setting up the video server..."
+	@${WAIT_FOR_USER_PROMPT}
 
 #	Configure gateway TLS cert
 # TODO: FINISH THE ABOVE
@@ -120,13 +129,15 @@ ${PROD_CONFIGURATION_CONFIRMATION_FILE}:
 # TODO: FINISH THE ABOVE
 
 	@${DOCKER_COMPOSE_CMD} stop
-	@$(MAKE) build-images
 	@touch ${PROD_CONFIGURATION_CONFIRMATION_FILE}
 	@echo Production Environment Configuration Complete!
 
 # Launch the docker microservices in a production environment
 launch: ${PROD_CONFIGURATION_CONFIRMATION_FILE}
-# TODO: Big message about unlocking the vault
+	@echo "\033[5;30;103m *** Please read the following *** \033[0m"
+	@echo "AFTER you hit enter, navigate to the following URL and unseal the vault so the server can fully start up."
+	@echo "\thttp://localhost:8200"
+	@${WAIT_FOR_USER_PROMPT}
 	${DOCKER_PROD_DEFINITIONS} ${DOCKER_COMPOSE_CMD_PROD} up -d
 
 shutdown:
@@ -134,6 +145,7 @@ shutdown:
 
 remove-prod:
 # TODO: FINISH ME make sure to have the user input that they are sure, then maybe again and again
+# TODO: make sure this deletes the prod config file
 
 #########################################################################################
 # RUN COMMANDS #
