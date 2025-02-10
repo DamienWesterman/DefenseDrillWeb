@@ -25,9 +25,9 @@
 #
 
 # Other todos
-# TODO: Make sure that swagger goes through the gateway, otherwise vulnerability
 # TODO: make a diagram somewhere of the make system and what interacts with what configurations and build rules and docker-compose files and profiles
 # TODO: check each run (dev, local, docker, prod) to see if it works fresh out of the box
+# TODO: make sure that the jwt is different from dev to prod
 
 include Constants.mk
 
@@ -149,7 +149,7 @@ ${PROD_CONFIGURATION_CONFIRMATION_FILE}:
 	@echo "\n\nProduction Environment Configuration Complete!"
 
 # Launch the docker microservices in a production environment
-launch: ${PROD_CONFIGURATION_CONFIRMATION_FILE} # TODO: Also have a test target to see if we have all the requirements for prod (.env has everything, cert is there, etc.)
+launch: ${PROD_CONFIGURATION_CONFIRMATION_FILE}
 	@echo "\033[5;30;103m *** Please read the following *** \033[0m"
 	@echo "AFTER you hit enter, navigate to the following URL and unseal the vault so the server can fully start up."
 	@echo "\thttp://localhost:8200"
@@ -158,10 +158,6 @@ launch: ${PROD_CONFIGURATION_CONFIRMATION_FILE} # TODO: Also have a test target 
 
 shutdown:
 	${DOCKER_COMPOSE_CMD_PROD} stop
-
-remove-prod:
-# TODO: FINISH ME make sure to have the user input that they are sure, then maybe again and again
-# TODO: make sure this deletes the prod config file
 
 #########################################################################################
 # RUN COMMANDS #
