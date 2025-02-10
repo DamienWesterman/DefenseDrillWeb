@@ -58,7 +58,7 @@ ${PROD_CONFIGURATION_CONFIRMATION_FILE}:
 	@$(MAKE) build-images
 
 # 	Configure Vault
-	@echo "Configuring vault\n------------------------------"
+	@echo "\n\n\n\nConfiguring vault\n------------------------------"
 	${DOCKER_PROD_DEFINITIONS} ${DOCKER_COMPOSE_CMD_PROD} up -d vault
 	@echo "Vault has started, open a new terminal and execute: (keep this terminal open)"
 	@echo "\tdocker compose exec -it vault sh"
