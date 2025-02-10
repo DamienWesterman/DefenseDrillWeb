@@ -30,6 +30,13 @@ services:
   #########################################################################################
   # SPRING SERVICES #
   #########################################################################################
+  gateway:
+    ports:
+      - "8443:8443"
+    environment:
+      - GATEWAY_CERT_KEYSTORE_PASSWORD=${GATEWAY_CERT_KEYSTORE_PASSWORD}
+    volumes:
+      - ./docker-configs/gateway-https.p12:/tmp/https.p12
 
   #########################################################################################
   # SUPPORT SERVICES #

@@ -30,6 +30,8 @@ PRIVATE_IP_ADDRESS := ${shell hostname -I | awk '{print $$1;}'}
 
 WAIT_FOR_USER_PROMPT := read -p "Press enter to continue..." ignore_var < /dev/tty
 
+GATEWAY_HTTPS_CERT_DIRECTORY := ./docker-configs/gateway-https.p12
+
 DOCKER_FILE_COMMON := ./docker-compose.yaml
 DOCKER_FILE_DEV := ./docker-compose.dev.yaml
 DOCKER_FILE_PROD := ./docker-compose.prod.yaml

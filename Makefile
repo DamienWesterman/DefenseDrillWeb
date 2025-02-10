@@ -27,6 +27,7 @@
 # Other todos
 # TODO: Make sure that swagger goes through the gateway, otherwise vulnerability
 # TODO: make a diagram somewhere of the make system and what interacts with what configurations and build rules and docker-compose files and profiles
+# TODO: check each run (dev, local, docker, prod) to see if it works fresh out of the box
 
 include Constants.mk
 
@@ -123,17 +124,32 @@ ${PROD_CONFIGURATION_CONFIRMATION_FILE}:
 	@${WAIT_FOR_USER_PROMPT}
 
 #	Configure gateway TLS cert
-# TODO: FINISH THE ABOVE
+	@echo "\n\nConfiguring Gateway TLS cert\n------------------------------"
+	@echo "Create a TLS cert with the following requirements:"
+	@echo "\tMust be in PKCS12 format"
+	@echo "\tMake sure the alias is named 'gateway'"
+	@${WAIT_FOR_USER_PROMPT}
+	@echo "Copy your .p12 certificate to the following location:"
+	@echo "\t${GATEWAY_HTTPS_CERT_DIRECTORY}"
+	@${WAIT_FOR_USER_PROMPT}
+	@read -p "Please input the certificate password: " MY_VAR < /dev/tty && \
+		echo GATEWAY_CERT_KEYSTORE_PASSWORD=$$MY_VAR >> ${DOCKER_ENVIRONMENT_FILE}
+	@echo "Gateway certificate configuration complete"
+	@${WAIT_FOR_USER_PROMPT}
 
 #	Prompt user to save default login (adminadmin)
-# TODO: FINISH THE ABOVE
+	@echo "\n\nPlease make note of the following default login to the DefenseDrill web app:"
+	@echo "\tUsername=adminadmin"
+	@echo "\tPassword=adminadmin"
+	@echo "When you first run the production server, please update the users and logins"
+	@${WAIT_FOR_USER_PROMPT}
 
 	@${DOCKER_COMPOSE_CMD} stop
 	@touch ${PROD_CONFIGURATION_CONFIRMATION_FILE}
-	@echo Production Environment Configuration Complete!
+	@echo "\n\nProduction Environment Configuration Complete!"
 
 # Launch the docker microservices in a production environment
-launch: ${PROD_CONFIGURATION_CONFIRMATION_FILE}
+launch: ${PROD_CONFIGURATION_CONFIRMATION_FILE} # TODO: Also have a test target to see if we have all the requirements for prod (.env has everything, cert is there, etc.)
 	@echo "\033[5;30;103m *** Please read the following *** \033[0m"
 	@echo "AFTER you hit enter, navigate to the following URL and unseal the vault so the server can fully start up."
 	@echo "\thttp://localhost:8200"
