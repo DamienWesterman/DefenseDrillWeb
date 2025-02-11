@@ -24,8 +24,6 @@
 # limitations under the License.
 #
 
-# TODO: make sure to import the cert stuff
-
 services:
   #########################################################################################
   # SPRING SERVICES #

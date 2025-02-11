@@ -24,14 +24,12 @@
 # limitations under the License.
 #
 
-# Other todos
-# TODO: make a diagram somewhere of the make system and what interacts with what configurations and build rules and docker-compose files and profiles
 # TODO: check each run (dev, local, docker, prod) to see if it works fresh out of the box
-# TODO: run a grep for all TODO in every directory
+# TODO: check prod in proxmox
 
 include Constants.mk
 
-.PHONY: init configure-prod launch shutdown remove-prod run-dev-local run-dev-docker stop-dev-local stop-dev-docker remove-dev-local remove-dev-docker test clean build-images help
+.PHONY: init configure-prod launch shutdown run-dev-local run-dev-docker stop-dev-local stop-dev-docker remove-dev-local remove-dev-docker test clean build-images help
 .DELETE_ON_ERROR: help
 
 # Initialize and import the spring repositories
@@ -213,7 +211,7 @@ test: remove-dev-local run-dev-local
 	$(MAKE) remove-dev-local
 	@echo "Finished tests at:" >> ${TEST_RESULTS_FILE}
 	@date >> ${TEST_RESULTS_FILE}
-	@echo All Tests Succeeded !
+	@echo All Tests Succeeded ! Results saved in: ${TEST_RESULTS_FILE}
 
 
 #########################################################################################
@@ -242,7 +240,6 @@ build-images: test
 # HELP MESSAGE #
 #########################################################################################
 # Display the help message
-# TODO: update the below
 help:
 	@echo
 	@echo "****************************************************************************************************"
@@ -250,22 +247,29 @@ help:
 	@echo "****************************************************************************************************"
 	@echo
 	@echo "Targets:"
-	@echo "   make help           : Show this help menu."
-	@echo "   make launch         : Download and launch docker containers in a production environment."
-	@echo "                         May require some configuration the first run."
+	@echo "  make help              : Show this help menu."
 	@echo
-	@echo "   make init           : Initialize the project by pulling in all microservices."
-	@echo "                         Needs to be run before anything below."
-	@echo "   make run-dev-local  : Run the application in a local development environment. This will"
-	@echo "                         launch the necessary docker containers to support the microservices,"
-	@echo "                         and the user is expected to launch the spring microservices individually."
-	@echo "   make run-dev-docker : Run the application in a docker development environment. Configures and"
-	@echo "                       : launches the docker-compose.yaml."
-	@echo "   make run-prod       : Run the application in a docker production environment. Configures and"
-	@echo "                       : launches the docker-compose.yaml."
-	@echo "   make test           : Runs test suites for each microservice. Results saved in"
-	@echo "                         ${TEST_RESULTS_FILE}"
-	@echo "   make clean          : Clean each microservice."
-	@echo "   make docker-build   : Build and save docker images for each microservice."
-	@echo "   make docker-upload  : Build and upload docker images of each microservice to a remote repo."
+	@echo "  make init              : Initialize the project by pulling in all microservices."
+	@echo "                           Needs to be run before anything below."
+	@echo "  make configure-prod    : Interactive script to configure the production environment."
+	@echo "  make launch            : Launch docker containers in a production environment."
+	@echo "                           May require some configuration before the first run."
+	@echo "  make shutdown          : Shut down the production environment temporarily. Keeps the storage"
+	@echo "                           volumes and all production data."
+	@echo
+	@echo "  make run-dev-local     : Run the application in a local development environment. This will"
+	@echo "                           launch the necessary docker containers to support the microservices,"
+	@echo "                           and the user is expected to launch the spring microservices individually."
+	@echo "                           Make sure to launch config-server first."
+	@echo "  make run-dev-docker    : Run the application in a docker development environment. Will assume that"
+	@echo "                           the spring images are up to date, if not run 'make build-images'"
+	@echo "  make stop-dev-local    : Stop the support docker containers without removing the storage or data."
+	@echo "  make stop-dev-docker   : Stop all docker containers without removing the storage or data."
+	@echo "  make remove-dev-local  : Shut down support docker containers and remove the data."
+	@echo "  make remove-dev-docker : Shut down all docker containers and remove the data."
+	@echo
+	@echo "  make test              : Runs test suites for each microservice. Results saved in"
+	@echo "                           ${TEST_RESULTS_FILE}."
+	@echo "  make clean             : Clean each microservice."
+	@echo "  make build-images      : Build and save docker images for each microservice."
 	@echo
