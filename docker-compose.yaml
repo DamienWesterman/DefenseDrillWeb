@@ -1,18 +1,126 @@
-# TODO: figure out exporting logs
-# TODO: create a docker-compose for production that uses images from my remote docker repo or something (configurable what repo)
-# TODO: figure out what needs to be changed for a dev profile and production. Might need different docker-compose files
-# TODO: add healthchecks, dependencies, and restart conditions
+# /****************************\
+# *      ________________      *
+# *     /  _             \     *
+# *     \   \ |\   _  \  /     *
+# *      \  / | \ / \  \/      *
+# *      /  \ | / | /  /\      *
+# *     /  _/ |/  \__ /  \     *
+# *     \________________/     *
+# *                            *
+# \****************************/
+#
+# Copyright 2024 Damien Westerman
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 services:
+  #########################################################################################
+  # SPRING SERVICES #
+  #########################################################################################
+  config-server:
+    image: defensedrillweb/config-server:latest
+    container_name: config-server
+    environment:
+      - EUREKA_DEFAULT_ZONE=http://server-registry:8761/eureka
+    # Other services continue to restart until this is up. Cannot do health check because
+    # the spring-boot:build-image is very lightweight and does not have any way to do a
+    # proper health check (no 'curl', 'wget', 'test', or anything)
+    restart: unless-stopped
+
+  server-registry:
+    image: defensedrillweb/server-registry:latest
+    container_name: server-registry
+    environment:
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES}
+      - CONFIG_SERVER=http://config-server:8888
+    restart: unless-stopped
+
+  rest-api:
+    image: defensedrillweb/rest-api:latest
+    container_name: rest-api
+    environment:
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES}
+      - CONFIG_SERVER=http://config-server:8888
+      - REST_API_DB_URL=jdbc:postgresql://api-database:5432/defense_drill
+      - POSTGRES_USER=${API_POSTGRES_USER}
+      - POSTGRES_PASSWORD=${API_POSTGRES_PASSWORD}
+      - EUREKA_DEFAULT_ZONE=http://server-registry:8761/eureka
+      - ZIPKIN_DEFAULT_ZONE=http://zipkin:9411/api/v2/spans
+    restart: unless-stopped
+    depends_on:
+      api-database:
+        condition: service_healthy
+
+  security:
+    image: defensedrillweb/security:latest
+    container_name: security
+    environment:
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES}
+      - CONFIG_SERVER=http://config-server:8888
+      - SECURITY_API_DB_URL=jdbc:postgresql://security-database:5432/security
+      - POSTGRES_USER=${SECURITY_POSTGRES_USER}
+      - POSTGRES_PASSWORD=${SECURITY_POSTGRES_PASSWORD}
+      - VAULT_URI=http://vault:8200
+      - SECURITY_VAULT_TOKEN=${VAULT_TOKEN}
+      - EUREKA_DEFAULT_ZONE=http://server-registry:8761/eureka
+      - ZIPKIN_DEFAULT_ZONE=http://zipkin:9411/api/v2/spans
+    restart: unless-stopped
+    depends_on:
+      security-database:
+        condition: service_healthy
+      vault:
+        condition: service_healthy
+
+  mvc:
+    image: defensedrillweb/mvc:latest
+    container_name: mvc
+    environment:
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES}
+      - CONFIG_SERVER=http://config-server:8888
+      - PRIVATE_IP_ADDRESS=${PRIVATE_IP_ADDRESS}
+      - EUREKA_DEFAULT_ZONE=http://server-registry:8761/eureka
+      - ZIPKIN_DEFAULT_ZONE=http://zipkin:9411/api/v2/spans
+    restart: unless-stopped
+
+  gateway:
+    image: defensedrillweb/gateway
+    container_name: gateway
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES}
+      - CONFIG_SERVER=http://config-server:8888
+      - EUREKA_DEFAULT_ZONE=http://server-registry:8761/eureka
+      - JELLYFIN_URL=http://jellyfin:8096
+      - VAULT_URI=http://vault:8200
+      - SECURITY_VAULT_TOKEN=${VAULT_TOKEN}
+      - ZIPKIN_DEFAULT_ZONE=http://zipkin:9411/api/v2/spans
+    restart: unless-stopped
+    depends_on:
+      vault:
+        condition: service_healthy
+
+  #########################################################################################
+  # SUPPORT SERVICES #
+  #########################################################################################
   api-database:
     image: postgres
-    ports:
-      - "5432:5432"
+    container_name: api-database
     environment:
       - POSTGRES_USER=${API_POSTGRES_USER}
       - POSTGRES_PASSWORD=${API_POSTGRES_PASSWORD}
       - POSTGRES_DB=defense_drill
-    env_file:
-      - ./docker-configs/defense_drill.env
     volumes:
       - api-database-volume:/var/lib/postgresql/data
     healthcheck:
@@ -24,14 +132,11 @@ services:
 
   security-database:
     image: postgres
-    ports:
-      - "9998:5432"
+    container_name: security-database
     environment:
       - POSTGRES_USER=${SECURITY_POSTGRES_USER}
       - POSTGRES_PASSWORD=${SECURITY_POSTGRES_PASSWORD}
       - POSTGRES_DB=security
-    env_file:
-      - ./docker-configs/defense_drill.env
     volumes:
       - security-database-volume:/var/lib/postgresql/data
     healthcheck:
@@ -42,22 +147,20 @@ services:
       timeout: 10s
 
   vault:
-    # TODO: figure out the --cap-add=IPC_LOCK passed in during docker run?
     image: hashicorp/vault
+    container_name: vault
     ports:
       - "8200:8200"
     environment:
-      - VAULT_DEV_ROOT_TOKEN_ID=${VAULT_TOKEN}
-      - VAULT_TOKEN=${VAULT_TOKEN}
-      - VAULT_DEV_LISTEN_ADDRESS=0.0.0.0:8200
-      - VAULT_ADDR=http://0.0.0.0:8200
-    env_file:
-      - ./docker-configs/defense_drill.env
-    # TODO: for prod, need to bring in a .hcl config file and copy to container
+      VAULT_ADDR: "http://127.0.0.1:8200"
     volumes:
-      - vault-volume:/vault/data # TODO: check this in prod
-    # healthcheck:
-      # TODO: Figure this ^^ out
+      - vault-volume:/vault/data
+    healthcheck:
+      test: ["CMD", "vault", "status"]
+      interval: 60s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
 
   zipkin:
     image: openzipkin/zipkin
@@ -67,6 +170,7 @@ services:
 
   video-server:
     image: jellyfin/jellyfin
+    container_name: video-server
     user: "${UID}:${GID}"
     ports:
       - "8096:8096"
@@ -76,29 +180,15 @@ services:
       - video-server-config:/config
       - video-server-media:/media
     restart: 'unless-stopped'
-    # Optional - alternative address used for autodiscovery
-    # TODO: set this up like https://gateway.com/jellyfin or whatever path I end up making
-    # environment:
-    #   - JELLYFIN_PublishedServerUrl=http://example.com
-    # Optional - may be necessary for docker healthcheck to pass if running in host network mode
-    # extra_hosts:
-    #   - 'host.docker.internal:host-gateway'
 
-# TODO: ADD THIS TO THE DIAGRAMS
   file-server:
     image: filebrowser/filebrowser
+    container_name: file-server
     ports:
-      - "8097:80"  # Exposes FileBrowser on http://localhost:8081
+      - "8097:80"
     volumes:
       - video-server-media:/srv
-      # TODO: Configure
-      # - ./path/to/filebrowser.db:/database/filebrowser.db
-      # - ./path/to/settings.json:/config/settings.json  # Mount the settings file
     restart: unless-stopped
-
-
-  # REST_API_DB_URL=jdbc:postgresql://api-database:5432/defense_drill
-  # SECURITY_API_DB_URL=jdbc:postgresql://security-database:5432/security
 
 volumes:
   api-database-volume:

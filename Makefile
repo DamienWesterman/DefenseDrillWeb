@@ -24,112 +24,222 @@
 # limitations under the License.
 #
 
-# TODO: Maybe have an interactive docker configs session? Or something, prompt the user
-# TODO: Have all the configuration files as templates then copy them over and .gitignore them
-# TODO: make a diagram somewhere of the make system and what interacts with what configurations and build rules and docker-compose files and profiles
+# TODO: check each run (dev, local, docker, prod) to see if it works fresh out of the box
+# TODO: check prod in proxmox
 
-DOCKER_COMPOSE_CMD := docker compose
-DOCKER_CONFIG_DIR := ./docker-configs
-DOCKER_ENVIRONMENT_FILE := defense_drill.env
-DOCKER_ENVIRONMENT_FILE_PATH := ${DOCKER_CONFIG_DIR}/${DOCKER_ENVIRONMENT_FILE}
-DOCKER_ENVIRONMENT_TEMPLATE_PATH := ${DOCKER_CONFIG_DIR}/.${DOCKER_ENVIRONMENT_FILE}.template
+include Constants.mk
 
-DOCKER_DEV_DEPENDENCIES =
-
-DOCKER_DEV_DEPENDENCIES += api-database
-DOCKER_DEV_DEFINITIONS += API_POSTGRES_USER=root
-DOCKER_DEV_DEFINITIONS += API_POSTGRES_PASSWORD=root
-
-DOCKER_DEV_DEPENDENCIES += zipkin
-
-DOCKER_DEV_DEPENDENCIES += security-database
-DOCKER_DEV_DEFINITIONS += SECURITY_POSTGRES_USER=root
-DOCKER_DEV_DEFINITIONS += SECURITY_POSTGRES_PASSWORD=root
-
-DOCKER_DEV_DEPENDENCIES += vault
-DOCKER_DEV_DEFINITIONS += VAULT_TOKEN=myroot
-
-DOCKER_DEV_DEPENDENCIES += video-server
-UID := $(shell id -u)
-GID := $(shell id -g)
-DOCKER_DEV_DEFINITIONS += UID=${UID}
-DOCKER_DEV_DEFINITIONS += GID=${GID}
-
-DOCKER_DEV_DEPENDENCIES += file-server
-
-# TODO: add all .PHONY
-.PHONY: init help run-dev-local run-dev-docker run-prod test-dev-local test-dev-docker test-prod clean docker-build docker-upload
-.DEFAULT: help
+.PHONY: init configure-prod launch shutdown run-dev-local run-dev-docker stop-dev-local stop-dev-docker remove-dev-local remove-dev-docker test clean build-images help
 .DELETE_ON_ERROR: help
 
-# Launch always uses a production/docker environment
-launch:
-# Make sure the docker compose environment configuration exists before launching
-	@test -f ${DOCKER_ENVIRONMENT_FILE_PATH} || { \
-			cp ${DOCKER_ENVIRONMENT_TEMPLATE_PATH} ${DOCKER_ENVIRONMENT_FILE_PATH}; \
-			echo "Please fill out fields in ${DOCKER_ENVIRONMENT_FILE_PATH} before continuing!"; \
-			exit 1; \
-		}
-	@echo MAKING $@
-#TODO: finish me
-
+# Initialize and import the spring repositories
 init:
 	repo init -u https://github.com/DamienWesterman/DefenseDrillManifests.git -m DefaultManifest.xml -b main
 	repo sync
-# TODO: Change the file names to variables. Also figure out a way to encrypt the file with a password so it is secure?
-	cp ${DOCKER_ENVIRONMENT_TEMPLATE_PATH} ${DOCKER_ENVIRONMENT_FILE_PATH}
-	@echo
-	@echo All repos have been imported. Please fill out fields in ${DOCKER_ENVIRONMENT_FILE_PATH}!
+	@echo All repos have been imported!
 
+#########################################################################################
+# PRODUCTION COMMANDS #
+#########################################################################################
+# Set up the production environment
+configure-prod: ${PROD_CONFIGURATION_CONFIRMATION_FILE}
+
+${PROD_CONFIGURATION_CONFIRMATION_FILE}:
+#	Print a big flashing message to follow instructions
+	@echo "\033[5;30;103m *** Please pay attention and follow the subsequent instructions carefully *** \033[0m"
+	@echo "" > ${DOCKER_ENVIRONMENT_FILE}
+
+#	Create the spring microservice docker images
+	@echo "Creating microservice docker images\n------------------------------"
+	@echo "We will now run units tests and build the docker images, this could take up to 10 minutes..."
+	@${WAIT_FOR_USER_PROMPT}
+	@${DOCKER_COMPOSE_CMD} stop
+	@$(MAKE) build-images
+
+# 	Configure Vault
+	@echo "\n\n\n\nConfiguring vault\n------------------------------"
+	${DOCKER_PROD_DEFINITIONS} ${DOCKER_COMPOSE_CMD_PROD} up -d vault
+	@echo "Vault has started, open a new terminal and execute: (keep this terminal open)"
+	@echo "\tdocker compose exec -it vault sh"
+	@${WAIT_FOR_USER_PROMPT}
+	@echo "Run the following command to initialize the vault:"
+	@echo "\tvault operator init"
+	@${WAIT_FOR_USER_PROMPT}
+	@echo "\nMAKE SURE TO SAVE THE GENERATED UNSEAL KEYS AND GENERATED ROOT TOKEN\n"
+	@echo "Navigate to the below URL and unlock the vault using 3 of the unseal keys: (keep this tab open)"
+	@echo "\thttp://localhost:8200"
+	@${WAIT_FOR_USER_PROMPT}
+	@echo "Back in the other terminal, run the following commands, ensuring to replace <your_token> with the vault generated root token:"
+	@echo "\texport VAULT_TOKEN=<your_token>"
+	@echo "\tvault secrets enable -path=secret -version=1 kv"
+	@${WAIT_FOR_USER_PROMPT}
+	@echo "Go back to the webpage, sign in with your root token, click 'secret/', click 'Create secret', and create the following two secrets:"
+	@echo "\tJWT Private key: path=security, key=jwtPrivateKey, value=<your_JWT_private_key>"
+	@echo "\tJWT Public key: path=public, key=jwtPublicKey, value=<your_JWT_public_key>"
+	@echo " ** PLEASE NOTE ** Your JWT must use RSA"
+	@${WAIT_FOR_USER_PROMPT}
+	@read -p "Please input the root token here to save to the docker environment: " MY_VAR < /dev/tty && \
+		echo VAULT_TOKEN=$$MY_VAR >> ${DOCKER_ENVIRONMENT_FILE}
+	@echo "Vault configuration complete, you may now close the webpage and other terminal"
+	@${WAIT_FOR_USER_PROMPT}
+
+#	Configure Databases
+	@echo "\n\nConfiguring Databases\n------------------------------"
+	@read -p "Create a username for the api database admin:  " MY_VAR < /dev/tty && \
+		echo API_POSTGRES_USER=$$MY_VAR >> ${DOCKER_ENVIRONMENT_FILE}
+	@read -p "Create a password for the api database admin:  " MY_VAR < /dev/tty && \
+		echo API_POSTGRES_PASSWORD=$$MY_VAR >> ${DOCKER_ENVIRONMENT_FILE}
+	@read -p "Create a username for the security database admin:  " MY_VAR < /dev/tty && \
+		echo SECURITY_POSTGRES_USER=$$MY_VAR >> ${DOCKER_ENVIRONMENT_FILE}
+	@read -p "Create a password for the security database admin:  " MY_VAR < /dev/tty && \
+		echo SECURITY_POSTGRES_PASSWORD=$$MY_VAR >> ${DOCKER_ENVIRONMENT_FILE}
+	@echo "Database configurations complete"
+	@${WAIT_FOR_USER_PROMPT}
+
+#	Configure file server
+	@echo "\n\nConfiguring file server\n------------------------------"
+	${DOCKER_PROD_DEFINITIONS} ${DOCKER_COMPOSE_CMD_PROD} up -d file-server
+	@echo "File server has started, navigate to the following URL: (keep this tab open)"
+	@echo "\thttp://localhost:8097"
+	@${WAIT_FOR_USER_PROMPT}
+	@echo "Not much has to be done here unless you want to change the login information."
+	@echo "\tDefault username: admin"
+	@echo "\tDefault password: admin"
+	@${WAIT_FOR_USER_PROMPT}
+
+#	Configure the video server (Jellyfin)
+	@echo "\n\nConfiguring video server\n------------------------------"
+	${DOCKER_PROD_DEFINITIONS} ${DOCKER_COMPOSE_CMD_PROD} up -d video-server
+	@echo "Video server has started, navigate to the following URL: (keep this tab open)"
+	@echo "\thttp://localhost:8096"
+	@${WAIT_FOR_USER_PROMPT}
+	@echo "Follow the startup prompts, and make sure you 'Add Media Library' using the following:"
+	@echo "\tContent Type: Any"
+	@echo "\tDisplay name: Anything"
+	@echo "\tClick to add a Folder and select: '\media'"
+	@echo "All other options are up to you"
+	@${WAIT_FOR_USER_PROMPT}
+	@echo "Press enter once you have finished setting up the video server..."
+	@${WAIT_FOR_USER_PROMPT}
+
+#	Configure gateway TLS cert
+	@echo "\n\nConfiguring Gateway TLS cert\n------------------------------"
+	@echo "Create a TLS cert with the following requirements:"
+	@echo "\tMust be in PKCS12 format"
+	@echo "\tMake sure the alias is named 'gateway'"
+	@${WAIT_FOR_USER_PROMPT}
+	@echo "Copy your .p12 certificate to the following location:"
+	@echo "\t${GATEWAY_HTTPS_CERT_DIRECTORY}"
+	@${WAIT_FOR_USER_PROMPT}
+	@read -p "Please input the certificate password: " MY_VAR < /dev/tty && \
+		echo GATEWAY_CERT_KEYSTORE_PASSWORD=$$MY_VAR >> ${DOCKER_ENVIRONMENT_FILE}
+	@echo "Gateway certificate configuration complete"
+	@${WAIT_FOR_USER_PROMPT}
+
+#	Prompt user to save default login (adminadmin)
+	@echo "\n\nPlease make note of the following default login to the DefenseDrill web app:"
+	@echo "\tUsername=adminadmin"
+	@echo "\tPassword=adminadmin"
+	@echo "When you first run the production server, please update the users and logins"
+	@${WAIT_FOR_USER_PROMPT}
+
+	@${DOCKER_COMPOSE_CMD} stop
+	@touch ${PROD_CONFIGURATION_CONFIRMATION_FILE}
+	@echo "\n\nProduction Environment Configuration Complete!"
+
+# Launch the docker microservices in a production environment
+launch: ${PROD_CONFIGURATION_CONFIRMATION_FILE}
+	@echo "\033[5;30;103m *** Please read the following *** \033[0m"
+	@echo "AFTER you hit enter, navigate to the following URL and unseal the vault so the server can fully start up."
+	@echo "\thttp://localhost:8200"
+	@${WAIT_FOR_USER_PROMPT}
+	${DOCKER_PROD_DEFINITIONS} ${DOCKER_COMPOSE_CMD_PROD} up -d
+
+shutdown:
+	${DOCKER_COMPOSE_CMD_PROD} stop
+
+#########################################################################################
+# RUN COMMANDS #
+#########################################################################################
+# Run the support microservices in docker. NO spring services
 run-dev-local:
-	@echo MAKING $@
-	${DOCKER_DEV_DEFINITIONS} ${DOCKER_COMPOSE_CMD} up -d ${DOCKER_DEV_DEPENDENCIES}
-#TODO: finish me
+	${DOCKER_DEV_DEFINITIONS} ${DOCKER_COMPOSE_CMD_DEV} up -d ${DOCKER_DEV_DEPENDENCIES}
 
+# Run all microservices and spring microservices in docker. Expects existing spring images, see 'make build-images'
+run-dev-docker:
+	${DOCKER_DEV_DEFINITIONS} ${DOCKER_COMPOSE_CMD_DEV} up -d ${DOCKER_DEV_DEPENDENCIES} ${MICROSERVICES}
+
+# Shut down the support microservices without destroying their storage
 stop-dev-local:
-	@echo MAKING $@
-	${DOCKER_DEV_DEFINITIONS} ${DOCKER_COMPOSE_CMD} stop
-#TODO: finish me
+	${DOCKER_DEV_DEFINITIONS} ${DOCKER_COMPOSE_CMD_DEV} stop
 
+# Shut down all microservices without destroying their storage
+stop-dev-docker: stop-dev-local
+
+# Shut down the support microservice and remove their storage
 remove-dev-local:
-	@echo MAKING $@
-	${DOCKER_DEV_DEFINITIONS} ${DOCKER_COMPOSE_CMD} down -v
-#TODO: finish me
+	${DOCKER_DEV_DEFINITIONS} ${DOCKER_COMPOSE_CMD_DEV} down -v
 
-run-dev-docker: docker-build
-# Run stop-dev-docker first
-	@echo MAKING $@
-# Specify SPRING_PROFILES_ACTIVE=dev-docker
-#TODO: finish me
+# Shut down all microservice and remove their storage
+remove-dev-docker: stop-dev-docker remove-dev-local
 
-run-prod:
-	@echo MAKING $@
-#TODO: finish me
+#########################################################################################
+# TEST #
+#########################################################################################
+# Run the test suite for each microservice
+SPRING_MICROSERVICES_DIRECTORY := ${shell pwd}/spring_microservices
+CMD_KILL_RUNNING_SPRING_SERVERS := kill $$(pgrep -f "spring-boot:run")
+TEST_RESULTS_FILE := ${SPRING_MICROSERVICES_DIRECTORY}/test_results.txt
+test: remove-dev-local run-dev-local
+	@echo "Testing DefenseDrillWeb"
+	-@rm ${TEST_RESULTS_FILE}
+	@touch ${TEST_RESULTS_FILE}
+	@echo "Starting tests at:" >> ${TEST_RESULTS_FILE}
+	@date >> ${TEST_RESULTS_FILE}
+	-@${CMD_KILL_RUNNING_SPRING_SERVERS}
+#	We test and start each service in order. We assume ${MICROSERVICES} is in startup order
+	@for service in ${MICROSERVICES} ; do								\
+		cd ${SPRING_MICROSERVICES_DIRECTORY}/$$service/ ;				\
+		set -e;															\
+		./mvnw test ;													\
+		./mvnw spring-boot:run > /dev/null & 							\
+		echo WAITING FOR SERVICE TO START : $$service ; 				\
+		echo Tests succeeded for $$service >> ${TEST_RESULTS_FILE} ;	\
+		sleep 30 ; 														\
+	done
+	-@${CMD_KILL_RUNNING_SPRING_SERVERS}
+	$(MAKE) remove-dev-local
+	@echo "Finished tests at:" >> ${TEST_RESULTS_FILE}
+	@date >> ${TEST_RESULTS_FILE}
+	@echo All Tests Succeeded ! Results saved in: ${TEST_RESULTS_FILE}
 
-test-dev-local:
-	@echo MAKING $@
-#TODO: finish me
 
-test-dev-docker:
-	@echo MAKING $@
-#TODO: finish me
-
-test-prod:
-	@echo MAKING $@
-#TODO: finish me
-
+#########################################################################################
+# CLEAN #
+#########################################################################################
+# Run clean for each microservice
 clean:
-	@echo MAKING $@
-#TODO: finish me
+	@for service in ${MICROSERVICES} ; do					\
+		cd ${SPRING_MICROSERVICES_DIRECTORY}/$$service/ ;	\
+		set -e;												\
+		./mvnw clean;										\
+	done
 
-docker-build:
-	@echo MAKING $@
-#TODO: finish me
+#########################################################################################
+# BUILD IMAGES #
+#########################################################################################
+# Create a local docker image of each spring microservice
+build-images: test
+	@for service in ${MICROSERVICES} ; do											\
+		cd ${SPRING_MICROSERVICES_DIRECTORY}/$$service/ ;							\
+		set -e;																		\
+		./mvnw spring-boot:build-image -DskipTests -Dspring-boot.build-image.imageName=defensedrillweb/$$service:latest;	\
+	done
 
-docker-upload:
-	@echo MAKING $@
-#TODO: finish me, check for credentials?
-
+#########################################################################################
+# HELP MESSAGE #
+#########################################################################################
+# Display the help message
 help:
 	@echo
 	@echo "****************************************************************************************************"
@@ -137,22 +247,29 @@ help:
 	@echo "****************************************************************************************************"
 	@echo
 	@echo "Targets:"
-	@echo "   make help           : Show this help menu."
-	@echo "   make launch         : Download and launch docker containers in a production environment."
-	@echo "                         May require some configuration the first run."
+	@echo "  make help              : Show this help menu."
 	@echo
-	@echo "   make init           : Initialize the project by pulling in all microservices."
-	@echo "                         Needs to be run before anything below."
-	@echo "   make run-dev-local  : Run the application in a local development environment. This will"
-	@echo "                         launch the necessary docker containers to support the microservices,"
-	@echo "                         and the user is expected to launch the spring microservices individually."
-	@echo "   make run-dev-docker : Run the application in a docker development environment. Configures and"
-	@echo "                       : launches the docker-compose.yaml."
-	@echo "   make run-prod       : Run the application in a docker production environment. Configures and"
-	@echo "                       : launches the docker-compose.yaml."
-# TODO: add stop-dev-local, and any others too
-# TODO: figure out how I want to do the test stuff? Unit vs integration? All in docker? Just launch docker base images then run the spring one by one and keep up config server/etc?
-	@echo "   make clean          : Clean each microservice."
-	@echo "   make docker-build   : Build and save docker images for each microservice."
-	@echo "   make docker-upload  : Build and upload docker images of each microservice to a remote repo."
+	@echo "  make init              : Initialize the project by pulling in all microservices."
+	@echo "                           Needs to be run before anything below."
+	@echo "  make configure-prod    : Interactive script to configure the production environment."
+	@echo "  make launch            : Launch docker containers in a production environment."
+	@echo "                           May require some configuration before the first run."
+	@echo "  make shutdown          : Shut down the production environment temporarily. Keeps the storage"
+	@echo "                           volumes and all production data."
+	@echo
+	@echo "  make run-dev-local     : Run the application in a local development environment. This will"
+	@echo "                           launch the necessary docker containers to support the microservices,"
+	@echo "                           and the user is expected to launch the spring microservices individually."
+	@echo "                           Make sure to launch config-server first."
+	@echo "  make run-dev-docker    : Run the application in a docker development environment. Will assume that"
+	@echo "                           the spring images are up to date, if not run 'make build-images'"
+	@echo "  make stop-dev-local    : Stop the support docker containers without removing the storage or data."
+	@echo "  make stop-dev-docker   : Stop all docker containers without removing the storage or data."
+	@echo "  make remove-dev-local  : Shut down support docker containers and remove the data."
+	@echo "  make remove-dev-docker : Shut down all docker containers and remove the data."
+	@echo
+	@echo "  make test              : Runs test suites for each microservice. Results saved in"
+	@echo "                           ${TEST_RESULTS_FILE}."
+	@echo "  make clean             : Clean each microservice."
+	@echo "  make build-images      : Build and save docker images for each microservice."
 	@echo
