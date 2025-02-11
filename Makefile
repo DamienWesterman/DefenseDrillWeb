@@ -27,7 +27,7 @@
 # Other todos
 # TODO: make a diagram somewhere of the make system and what interacts with what configurations and build rules and docker-compose files and profiles
 # TODO: check each run (dev, local, docker, prod) to see if it works fresh out of the box
-# TODO: make sure that the jwt is different from dev to prod
+# TODO: run a grep for all TODO in every directory
 
 include Constants.mk
 
@@ -78,6 +78,7 @@ ${PROD_CONFIGURATION_CONFIRMATION_FILE}:
 	@echo "Go back to the webpage, sign in with your root token, click 'secret/', click 'Create secret', and create the following two secrets:"
 	@echo "\tJWT Private key: path=security, key=jwtPrivateKey, value=<your_JWT_private_key>"
 	@echo "\tJWT Public key: path=public, key=jwtPublicKey, value=<your_JWT_public_key>"
+	@echo " ** PLEASE NOTE ** Your JWT must use RSA"
 	@${WAIT_FOR_USER_PROMPT}
 	@read -p "Please input the root token here to save to the docker environment: " MY_VAR < /dev/tty && \
 		echo VAULT_TOKEN=$$MY_VAR >> ${DOCKER_ENVIRONMENT_FILE}
