@@ -24,7 +24,6 @@
 # limitations under the License.
 #
 
-# TODO: check each run (dev, local, docker, prod) to see if it works fresh out of the box
 # TODO: check prod in proxmox
 
 include Constants.mk
@@ -44,6 +43,7 @@ init:
 # Set up the production environment
 configure-prod: ${PROD_CONFIGURATION_CONFIRMATION_FILE}
 
+PWD := ${shell pwd}
 ${PROD_CONFIGURATION_CONFIRMATION_FILE}:
 #	Print a big flashing message to follow instructions
 	@echo "\033[5;30;103m *** Please pay attention and follow the subsequent instructions carefully *** \033[0m"
@@ -57,9 +57,10 @@ ${PROD_CONFIGURATION_CONFIRMATION_FILE}:
 	@$(MAKE) build-images
 
 # 	Configure Vault
-	@echo "\n\n\n\nConfiguring vault\n------------------------------"
+	@echo "\n\n\n\n\aConfiguring vault\n------------------------------"
 	${DOCKER_PROD_DEFINITIONS} ${DOCKER_COMPOSE_CMD_PROD} up -d vault
 	@echo "Vault has started, open a new terminal and execute: (keep this terminal open)"
+	@echo "\tcd ${PWD}"
 	@echo "\tdocker compose exec -it vault sh"
 	@${WAIT_FOR_USER_PROMPT}
 	@echo "Run the following command to initialize the vault:"
@@ -114,8 +115,8 @@ ${PROD_CONFIGURATION_CONFIRMATION_FILE}:
 	@echo "\thttp://localhost:8096"
 	@${WAIT_FOR_USER_PROMPT}
 	@echo "Follow the startup prompts, and make sure you 'Add Media Library' using the following:"
-	@echo "\tContent Type: Any"
-	@echo "\tDisplay name: Anything"
+	@echo "\tContent Type: <whichever>"
+	@echo "\tDisplay name: <whichever>"
 	@echo "\tClick to add a Folder and select: '\media'"
 	@echo "All other options are up to you"
 	@${WAIT_FOR_USER_PROMPT}
