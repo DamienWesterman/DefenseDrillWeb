@@ -68,11 +68,13 @@ User credentials are only issued via the admin web portal.
 ## Web Portal
 The admin web portal uses a simple card based system to maintain the backend. The home screen offers links to the database maintenance as well as other microservice maintenance portals:
 
-<img src="docs/screenshots/home_screen.jpg" alt="Home Screen" width="200"/>
+<img src="docs/screenshots/home_screen.png" alt="Home Screen" width="2000"/>
 
 The modify options allow for maintenance of the databases, giving options to create, view, update, and delete entries. The tab options on the left offer SPA like functionalities and will update the view window on the right. Each option is simple and intuitive and offers simple forms for modification:
 
-<img src="docs/screenshots/modify_screen.jpg" alt="Home Screen" width="200"/>
+<img src="docs/screenshots/modify_screen.png" alt="Home Screen" width="2000"/>
+
+This webpage is best viewed on a landscape PC monitor and is not optimized for mobile.
 
 # Technologies Used
 - Spring / Spring Boot
@@ -105,7 +107,7 @@ While there are access controls in place, there are less layers of security in t
 - The microservices communicate inside the docker network via http (not https), and thus data in transit is unencrypted internally.
 - In each docker container, passwords are stored as environment variables and the cert is not stored in the vault, and therefore if physical access is obtained these may be easily accessed.
 ### UI
-As mentioned, UI was not the focus of this project and therefore the effort was simplicity. A simple card based solution was used for many of the screens. On the backend, Thymeleaf was used as a templating engine for the MVC rendering implementation. This gives more control to the backend logic. For the front end, to create SPA like webpages, HTMX was used to lower load time and increase usability. That said, there may be some accessibility issues, lack of engaging design, or lack of features. But given how the web page is only for administrative purposes, these drawbacks have been deemed acceptable.
+As mentioned, UI was not the focus of this project and therefore the effort was simplicity. A simple card based solution was used for many of the screens. On the backend, Thymeleaf was used as a templating engine for the MVC rendering implementation. This gives more control to the backend logic. For the front end, to create SPA like webpages, HTMX was used to lower load time and increase usability. That said, there may be some accessibility issues, lack of engaging design, or lack of features. It is also not optimized for different sized screens, and therefore may have issues on something other than a landscape PC monitor. But given how the web page is only for administrative purposes, these drawbacks have been deemed acceptable.
 
 # Future Improvements
 For guided learning, there could be a mentor/mentee mode where as new drills are learned, the mentor can use the web portal to push new drills onto a mentee's app. Or potentially curate workouts or force certain drills to come up more frequently.
