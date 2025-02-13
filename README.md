@@ -66,7 +66,13 @@ The JWT authorization token needs to be retrieved from `/authenticate`, and it w
 ```
 User credentials are only issued via the admin web portal.
 ## Web Portal
-The admin web portal uses a simple card based system to maintain the backend. The home screen offers links to the database maintenance as well as other microservice maintenance portals.
+The admin web portal uses a simple card based system to maintain the backend. The home screen offers links to the database maintenance as well as other microservice maintenance portals:
+
+<img src="docs/screenshots/home_screen.jpg" alt="Home Screen" width="200"/>
+
+The modify options allow for maintenance of the databases, giving options to create, view, update, and delete entries. The tab options on the left offer SPA like functionalities and will update the view window on the right. Each option is simple and intuitive and offers simple forms for modification:
+
+<img src="docs/screenshots/modify_screen.jpg" alt="Home Screen" width="200"/>
 
 # Technologies Used
 - Spring / Spring Boot
