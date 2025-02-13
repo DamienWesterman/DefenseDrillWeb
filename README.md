@@ -53,6 +53,20 @@ make init
       ```
 
 # Usage
+##API
+Most API reqeusts (except for `/authenticate`) need to include the JWT given after authentication from the `/authenticate` endpoint. The JWT needs to be included as a cookie with the following format: "jwt=YOUR_JWT". Only GET methods are allowed through the gateway. For request parameters, endpoints, and returns please refer to the api documentation endpoint, which is located at the following endpoint:
+- For development servers: `http://localhost:5433/swagger-ui/index.html`
+- For production servers: `/docs/index.html`
+The JWT authorization token needs to be retrieved from `/authenticate`, and it will be a string in the response body in the format "YOUR_JWT". To retrieve, a POST request needs to be sent to `/authenticate` witht he following request body:
+```
+{
+   "username":"YOUR_USERNAME",
+   "password":"YOUR_PASSWORD"
+}
+```
+User credentials are only issued via the admin web portal.
+## Web Portal
+The admin web portal uses a simple card based system to maintain the backend. The home screen offers links to the database maintenance as well as other microservice maintenance portals.
 
 # Technologies Used
 - Spring / Spring Boot
