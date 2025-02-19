@@ -100,7 +100,7 @@ services:
       - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES}
       - CONFIG_SERVER=http://config-server:8888
       - EUREKA_DEFAULT_ZONE=http://server-registry:8761/eureka
-      - JELLYFIN_URL=http://jellyfin:8096
+      - JELLYFIN_URL=http://video-server:8096
       - VAULT_URI=http://vault:8200
       - SECURITY_VAULT_TOKEN=${VAULT_TOKEN}
       - ZIPKIN_DEFAULT_ZONE=http://zipkin:9411/api/v2/spans
