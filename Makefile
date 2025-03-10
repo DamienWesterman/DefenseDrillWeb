@@ -24,8 +24,6 @@
 # limitations under the License.
 #
 
-# TODO: check prod in proxmox
-
 include Constants.mk
 
 .PHONY: init configure-prod launch shutdown run-dev-local run-dev-docker stop-dev-local stop-dev-docker remove-dev-local remove-dev-docker test clean build-images help
