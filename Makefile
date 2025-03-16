@@ -52,6 +52,7 @@ ${PROD_CONFIGURATION_CONFIRMATION_FILE}:
 	@echo "We will now run units tests and build the docker images, this could take up to 10 minutes..."
 	@${WAIT_FOR_USER_PROMPT}
 	@${DOCKER_COMPOSE_CMD} stop
+	@$(MAKE) test
 	@$(MAKE) build-images
 
 # 	Configure Vault
@@ -228,7 +229,7 @@ clean:
 # BUILD IMAGES #
 #########################################################################################
 # Create a local docker image of each spring microservice
-build-images: test
+build-images:
 	@for service in ${MICROSERVICES} ; do											\
 		cd ${SPRING_MICROSERVICES_DIRECTORY}/$$service/ ;							\
 		set -e;																		\
